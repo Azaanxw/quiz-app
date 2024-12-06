@@ -1,7 +1,11 @@
 // Modules
 var express = require ('express')
 var ejs = require('ejs')
-var mysql = require('mysql')
+var mysql = require('mysql2')
+var bodyParser = require("body-parser");
+
+// Load environment variables from .env file
+require('dotenv').config();
 
 // Create the express application object
 const app = express()
@@ -10,10 +14,10 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // Define the database connection
 const db = mysql.createConnection ({
-    host: 'localhost',
-    user: 'root',
-    password: 'app2024',
-    database: 'quizapp'
+    host: process.env.db_host,
+    user: process.env.db_user,
+    password: process.env.db_password,
+    database: process.env.db_name
 });
 // Connect to the database
 db.connect((err) => {
