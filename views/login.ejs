@@ -1,7 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/main.css">
+    <title>Quizhub Login</title>
   </head>
+  <body>
+    <div class="container">
+    <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon">
+    <h1>QuizHub</h1>    
+    <h3>Welcome!</h3>
+    <!-- Login form -->
+    
+    <form action="/login" method="POST">
+      <img src="images/email_icon.png" alt="Email Icon" class="icon">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+      <img src="images/password_icon.png" alt="Password Icon" class="icon">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required>
+      <button type="submit">Login</button>
+  </form>
+
+   <!-- Link to Registration Page -->
+  <footer>
+    <p>Don't have an account? <a href="/register" class="redirect-link">Sign up here</a></p>
+  </footer>
+  </div>
   </body>
 </html>
