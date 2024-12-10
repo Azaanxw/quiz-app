@@ -1,7 +1,54 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Register</title>
-  </head> 
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/main.css">
+    <title>QuizHub Register</title>
+</head>
+<body>
+    <div class="container">
+      <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon">
+        <h1 class="title">QuizHub Register</h1>
+        <h3 class="subtitle">Create an Account:</h3>
+
+        <!-- Registration Form -->
+        <form action="/register" method="POST" class="login-form">
+            <div class="form-group">
+                <label for="username">
+                    <img src="/images/username_icon.png" alt="Username Icon" class="icon"> Username:
+                </label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">
+                    <img src="/images/email_icon.png" alt="Email Icon" class="icon"> Email:
+                </label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <img src="/images/password_icon.png" alt="Password Icon" class="icon"> Password:
+                </label>
+                <input type="password" id="password" name="password" placeholder="Create a password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">
+                    <img src="/images/password_icon.png" alt="Password Icon" class="icon"> Confirm Password:
+                </label>
+                <input type="password" id="confirm-password" name="confirmPassword" placeholder="Re-enter your password" required>
+            </div>
+
+            <button type="submit" class="btn">Register</button>
+        </form>
+
+        <!-- Link to Login Page -->
+        <p class="register-link">
+            Already have an account? <a href="/login">Login here</a>
+        </p>
+    </div>
+</body>
 </html>
