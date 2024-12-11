@@ -5,11 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/main.css">
     <title>QuizHub Register</title>
+
 </head>
 <body>
     <div class="container">
       <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon">
         <h1 class="title">QuizHub Register</h1>
+             <!-- Display success message -->
+        <% if (successMessage && successMessage.length > 0) { %>
+            <div class="flash-messages success">
+                <%= successMessage %>
+            </div>
+        <% } %>
+  
+        <!-- Display error message -->
+        <% if (errorMessage && errorMessage.length > 0) { %>
+            <div class="flash-messages error">
+                <%= errorMessage %>
+                console.log(errorMessage)
+            </div>
+        <% } %>
+        <script>
+        // Function to hide the flash message after 3500 milliseconds (3.5 seconds)
+        setTimeout(function(){
+          var alertElement = document.querySelector('.flash-messages');
+          if (alertElement) {
+            alertElement.style.display = 'none';
+          }
+        }, 3500);
+        </script>
         <h3 class="subtitle">Create an Account:</h3>
 
         <!-- Registration Form -->
@@ -39,7 +63,7 @@
                 <label for="confirm-password">
                     <img src="/images/password_icon.png" alt="Password Icon" class="icon"> Confirm Password:
                 </label>
-                <input type="password" id="confirm-password" name="confirmPassword" placeholder="Re-enter your password" required>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter your password" required>
             </div>
 
             <button type="submit" class="btn">Register</button>

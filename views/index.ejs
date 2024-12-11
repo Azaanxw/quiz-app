@@ -1,7 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Main</title>
-  </head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/main.css">
+    <title>Quizhub</title>
+    <script>
+
+        // Function to hide the flash message after 3500 milliseconds (3.5 seconds)
+        setTimeout(function(){
+          var alertElement = document.querySelector('.flash-messages');
+          if (alertElement) {
+            alertElement.style.display = 'none';
+          }
+        }, 3500);
+        
+      </script>
+  </head>
+  <body>
+    <div class="container">
+    <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon">
+    <h1>QuizHub Home</h1>
+    
+          <!-- Display success message -->
+          <% if (successMessage && successMessage.length > 0) { %>
+            <div class="flash-messages success">
+                <%= successMessage %>
+            </div>
+        <% } %>
+  
+        <!-- Display error message -->
+        <% if (errorMessage && errorMessage.length > 0) { %>
+            <div class="flash-messages error">
+                <%= errorMessage %>
+                console.log(errorMessage)
+            </div>
+        <% } %>
+  <p>this is the home page for the quiz app</p>
+  </div>
   </body>
 </html>

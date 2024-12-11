@@ -79,3 +79,47 @@ footer a:hover {
     height: 20px; 
     vertical-align: bottom;
 }
+
+/* Flash messages container */
+.flash-messages {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999; 
+    max-width: 95%;
+    text-align: center;
+    padding: 20px 30px;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: slide-up 0.3s ease-out;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease; 
+}
+
+/* Success message styling */
+.flash-messages.success {
+    background-color: #4caf50; 
+    color: white;
+}
+
+/* Error message styling */
+.flash-messages.error {
+    background-color: #f44336; 
+    color: white;
+}
+
+/* Animation for sliding up */
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
