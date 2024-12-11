@@ -3,7 +3,10 @@ module.exports = function(app) {
     //Password hashing setup
     const bcrypt = require("bcrypt"); 
     const saltRounds = 10; // Number of salt rounds for hashing
+    
 
+    // Request module
+    const request = require("request");
     // Authentication check to see if the user is logged in or not
     var isAuthenticated = (req, res, next) => {
 
@@ -34,7 +37,7 @@ module.exports = function(app) {
     
         res.render("about.ejs", { successMessage, errorMessage, username });
     });
-    
+
     // Login page
     app.get('/login', (req, res) => {
         const successMessage = req.flash("success")
@@ -140,4 +143,80 @@ module.exports = function(app) {
           }
         });
       });
+
+    // Quiz implementation
+
+        // Route for quiz setup form
+    app.get("/quiz-setup", isAuthenticated, (req, res) => {
+        const categories = [
+            { id: 9, name: "General Knowledge" },
+            { id: 10, name: "Books" },
+            { id: 11, name: "Film" },
+            { id: 12, name: "Music" },
+            { id: 21, name: "Sports" },
+            { id: 25, name: "Art" },
+            { id: 28, name: "Vehicles" },
+            { id: 27, name: "Animals" },
+            // Add more categories as needed
+        ];
+        res.render("quiz-setup.ejs", { categories, username: req.session.username });
+    });
+
+    // Route to fetch quiz questions
+    app.post("/generate-quiz", isAuthenticated, (req, res) => {
+        const { amount, category, difficulty } = req.body;
+        const apiUrl = `https://opentdb.com/api.php?amount=${amount}&category=${category}&difficulty=${difficulty}&type=multiple`;
+
+        request(apiUrl, { json: true }, (err, response, body) => {
+            if (err) {
+                console.error("Error fetching quiz data:", err);
+                req.flash("error", "Failed to generate quiz. Please try again.");
+                return res.redirect("/quiz-setup");
+            }
+
+            if (body.response_code !== 0) {
+                req.flash("error", "No questions available for the selected options. Try again.");
+                return res.redirect("/quiz-setup");
+            }
+
+            req.session.quizData = body.results; // Save quiz data in session
+            res.redirect("/quiz");
+        });
+    });
+
+    const he = require("he"); // Import the library
+
+    app.get("/quiz", isAuthenticated, (req, res) => {
+        const quizData = req.session.quizData;
+        if (!quizData) {
+            req.flash("error", "No quiz data found. Please generate a quiz first.");
+            return res.redirect("/quiz-setup");
+        }
+    
+        // Decode HTML entities in questions and answers
+        const decodedQuizData = quizData.map((question) => ({
+            ...question,
+            question: he.decode(question.question),
+            correct_answer: he.decode(question.correct_answer),
+            incorrect_answers: question.incorrect_answers.map((answer) => he.decode(answer)),
+        }));
+    
+        res.render("quiz.ejs", { quizData: decodedQuizData, username: req.session.username });
+    });
+    
+    // Route to handle quiz submission and score calculation
+    app.post("/quiz-result", isAuthenticated, (req, res) => {
+        const userAnswers = req.body.answers;
+        const quizData = req.session.quizData;
+
+        let score = 0;
+        quizData.forEach((question, index) => {
+            if (userAnswers[index] === question.correct_answer) {
+                score++;
+            }
+        });
+
+        res.render("quiz-result.ejs", { score, total: quizData.length, username: req.session.username });
+    });
+
 };

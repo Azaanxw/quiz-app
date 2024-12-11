@@ -1,0 +1,14 @@
+<form action="/quiz-result" method="POST">
+    <% quizData.forEach((question, index) => { %>
+        <div>
+            <h3>Question <%= index + 1 %>: <%= question.question %></h3>
+            <% [question.correct_answer, ...question.incorrect_answers].sort(() => Math.random() - 0.5).forEach(answer => { %>
+                <label>
+                    <input type="radio" name="answers[<%= index %>]" value="<%= answer %>" required>
+                    <%= answer %>
+                </label>
+            <% }); %>
+        </div>
+    <% }); %>
+    <button type="submit">Submit Quiz</button>
+</form>
