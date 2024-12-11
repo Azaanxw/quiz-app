@@ -123,3 +123,31 @@ footer a:hover {
     }
 }
 
+.logout-button {
+    background-color: #f44336; 
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: #d32f2f; /* Darker red on hover */
+}
+
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px;
+}
+
+.user-info p {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}

@@ -36,7 +36,19 @@
                 console.log(errorMessage)
             </div>
         <% } %>
+    
   <p>this is the home page for the quiz app</p>
+
+  <div class="user-info">
+    <% if (username) { %>
+        <p>Welcome, <%= username %>!</p>
+        <a href="/logout" class="logout-button">Logout</a>
+    <% } else { %>
+        <p>Welcome, Guest!</p>
+    <% } %>
+</div>
+  </div>
+  </div>
   </div>
   </body>
 </html>

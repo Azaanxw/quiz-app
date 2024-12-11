@@ -19,16 +19,22 @@ module.exports = function(app) {
   };
 
     // Handle our routes
-    app.get('/', isAuthenticated,function(req,res){
+    app.get("/", isAuthenticated, (req, res) => {
         const successMessage = req.flash("success");
         const errorMessage = req.flash("error");
-
-        res.render("index.ejs", { successMessage, errorMessage });
-    });
-    app.get('/about', isAuthenticated,function(req,res){
-        res.render('about.ejs');
+        const username = req.session.username || null; // Pass username if logged in
+    
+        res.render("index.ejs", { successMessage, errorMessage, username });
     });
 
+    app.get("/about", isAuthenticated, (req, res) => {
+        const successMessage = req.flash("success");
+        const errorMessage = req.flash("error");
+        const username = req.session.username || null; // Pass username if logged in
+    
+        res.render("about.ejs", { successMessage, errorMessage, username });
+    });
+    
     // Login page
     app.get('/login', (req, res) => {
         const successMessage = req.flash("success")
@@ -56,6 +62,7 @@ module.exports = function(app) {
     
                     if (match) {
                         req.session.userId = results[0].user_id; // Save user ID in session
+                        req.session.username = results[0].username; // Store username in session
                         req.flash("success", "Login successful!");
                         return res.redirect("/");
                     } else {

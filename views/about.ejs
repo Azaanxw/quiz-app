@@ -1,7 +1,19 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>About</title>
-  </head> 
-  </body>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/main.css">
+    <title>Quizhub About</title>
+  </head>
+  <body>
+    <div class="user-info">
+      <% if (username) { %>
+          <p>Welcome, <%= username %>!</p>
+          <a href="/logout" class="logout-button">Logout</a>
+      <% } else { %>
+          <p>Welcome, Guest!</p>
+      <% } %>
+  </div>
+  </body> 
 </html>
