@@ -1,14 +1,35 @@
-<form action="/quiz-result" method="POST">
-    <% quizData.forEach((question, index) => { %>
-        <div>
-            <h3>Question <%= index + 1 %>: <%= question.question %></h3>
-            <% [question.correct_answer, ...question.incorrect_answers].sort(() => Math.random() - 0.5).forEach(answer => { %>
-                <label>
-                    <input type="radio" name="answers[<%= index %>]" value="<%= answer %>" required>
-                    <%= answer %>
-                </label>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/quiz.css">
+    <title>QuizHub Register</title>
+
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Quiz Time!</h1>
+        <form action="/quiz-result" method="POST">
+            <% quizData.forEach((question, index) => { %>
+                <div class="question">
+                    <p>Question <%= index + 1 %>: <%= question.question %></p>
+                    <ul class="options">
+                        <% [question.correct_answer, ...question.incorrect_answers]
+                            .sort(() => Math.random() - 0.5)
+                            .forEach(answer => { %>
+                            <li>
+                                <label>
+                                    <input type="radio" name="answers[<%= index %>]" value="<%= answer %>" required>
+                                    <%= answer %>
+                                </label>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </div>
             <% }); %>
-        </div>
-    <% }); %>
-    <button type="submit">Submit Quiz</button>
-</form>
+            <button type="submit">Submit Quiz</button>
+        </form>
+    </div>
+    
+</body>

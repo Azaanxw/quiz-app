@@ -1,20 +1,41 @@
-<form action="/generate-quiz" method="POST">
-    <label for="amount">Number of Questions:</label>
-    <input type="number" name="amount" id="amount" required min="1" max="50">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/quiz.css">
+    <title>QuizHub Register</title>
 
-    <label for="category">Category:</label>
-    <select name="category" id="category">
-        <% categories.forEach(category => { %>
-            <option value="<%= category.id %>"><%= category.name %></option>
-        <% }); %>
-    </select>
-
-    <label for="difficulty">Difficulty:</label>
-    <select name="difficulty" id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-    </select>
-
-    <button type="submit">Generate Quiz</button>
-</form>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Setup Your Quiz</h1>
+        <form action="/generate-quiz" method="POST">
+            <div class="form-group">
+                <label for="amount">Number of Questions:</label>
+                <input type="number" name="amount" id="amount" required min="1" max="50" placeholder="Enter a number (1-50)">
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Select a Category:</label>
+                <select name="category" id="category" required>
+                    <% categories.forEach(category => { %>
+                        <option value="<%= category.id %>"><%= category.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="difficulty">Select Difficulty:</label>
+                <select name="difficulty" id="difficulty" required>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            
+            <button type="submit">Generate Quiz</button>
+        </form>
+    </div>
+    
+</body>
