@@ -23,11 +23,21 @@ module.exports = function(app) {
 
     // Handle our routes
     app.get("/", isAuthenticated, (req, res) => {
-        const successMessage = req.flash("success");
-        const errorMessage = req.flash("error");
-        const username = req.session.username || null; // Pass username if logged in
+        db.query(
+            "SELECT QUIZZES.id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
+            (err, quizzes) => {
+                if (err) {
+                    console.error("Error fetching quizzes:", err.message);
+                    req.flash("error", "Failed to fetch quizzes. Please try again.");
+                    return res.render("index.ejs", { quizzes: [], successMessage: null, errorMessage: req.flash("error") });
+                }
     
-        res.render("index.ejs", { successMessage, errorMessage, username });
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+                const username = req.session.username || null; // Retrieve the username from the session
+                res.render("index.ejs", { quizzes, successMessage, errorMessage, username });
+            }
+        );
     });
 
     app.get("/about", isAuthenticated, (req, res) => {
@@ -50,7 +60,7 @@ module.exports = function(app) {
     
         try {
             // Retrieve user data from the database
-            db.query("SELECT * FROM user WHERE email = ?", [email], async (error, results) => {
+            db.query("SELECT * FROM USERS WHERE email = ?", [email], async (error, results) => {
                 if (error) {
                     console.error("Database Error:", error);
                     req.flash("error", "Internal Server Error");
@@ -110,7 +120,7 @@ module.exports = function(app) {
         const newUser = { username, email, password: hashedPassword };
 
         // Insert the user into the database
-        db.query("INSERT INTO user SET ?", newUser, (error) => {
+        db.query("INSERT INTO USERS SET ?", newUser, (error) => {
             if (error) {
                 if (error.code === "ER_DUP_ENTRY") {
                     req.flash("error", "Username or email already exists!");
@@ -166,57 +176,194 @@ module.exports = function(app) {
     app.post("/generate-quiz", isAuthenticated, (req, res) => {
         const { amount, category, difficulty } = req.body;
         const apiUrl = `https://opentdb.com/api.php?amount=${amount}&category=${category}&difficulty=${difficulty}&type=multiple`;
-
-        request(apiUrl, { json: true }, (err, response, body) => {
-            if (err) {
-                console.error("Error fetching quiz data:", err);
-                req.flash("error", "Failed to generate quiz. Please try again.");
+    
+        request(apiUrl, (error, response, body) => {
+            if (error) {
+                console.error("Error fetching quiz data:", error.message);
+                req.flash(
+                    "error",
+                    "Failed to fetch quiz data. Please check your internet connection or try again later."
+                );
                 return res.redirect("/quiz-setup");
             }
-
-            if (body.response_code !== 0) {
-                req.flash("error", "No questions available for the selected options. Try again.");
+    
+            const apiResponse = JSON.parse(body);
+    
+            if (apiResponse.response_code !== 0) {
+                req.flash(
+                    "error",
+                    "No questions available for the selected options. Please try different settings."
+                );
                 return res.redirect("/quiz-setup");
             }
-
-            req.session.quizData = body.results; // Save quiz data in session
-            res.redirect("/quiz");
+    
+            const quizData = apiResponse.results.map((q) => ({
+                question: he.decode(q.question),
+                correctAnswer: he.decode(q.correct_answer),
+                incorrectAnswers: q.incorrect_answers.map((ans) => he.decode(ans)),
+            }));
+    
+            const userId = req.session.userId;
+    
+            // Save quiz metadata
+            const title = `Quiz (${category}, ${difficulty}, ${amount} Questions)`;
+            db.query(
+                "INSERT INTO QUIZZES (title, created_by) VALUES (?, ?)",
+                [title, userId],
+                (err, results) => {
+                    if (err) {
+                        console.error("Error saving quiz:", err.message);
+                        req.flash("error", "Failed to save the quiz. Please try again.");
+                        return res.redirect("/quiz-setup");
+                    }
+    
+                    const quizId = results.insertId;
+    
+                    // Save questions
+                    const questions = quizData.map((q) => [
+                        quizId,
+                        q.question,
+                        q.correctAnswer,
+                        JSON.stringify(q.incorrectAnswers), // Store incorrect answers as JSON
+                    ]);
+    
+                    db.query(
+                        "INSERT INTO QUIZ_QUESTIONS (quiz_id, question, correct_answer, incorrect_answers) VALUES ?",
+                        [questions],
+                        (err) => {
+                            if (err) {
+                                console.error("Error saving questions:", err.message);
+                                req.flash("error", "Failed to save quiz questions.");
+                                return res.redirect("/quiz-setup");
+                            }
+    
+                            req.session.quizData = quizData;
+                            req.flash("success", "Quiz successfully created!");
+                            res.redirect("/");
+                        }
+                    );
+                }
+            );
         });
     });
+    
 
     const he = require("he"); // Import the library
 
-    app.get("/quiz", isAuthenticated, (req, res) => {
-        const quizData = req.session.quizData;
+    app.get("/quiz/:id", isAuthenticated, (req, res) => {
+        const quizId = req.params.id;
+    
+        db.query(
+            `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
+             FROM QUIZZES
+             JOIN QUIZ_QUESTIONS ON QUIZZES.id = QUIZ_QUESTIONS.quiz_id
+             WHERE QUIZZES.id = ?`,
+            [quizId],
+            (err, results) => {
+                if (err) {
+                    console.error("Error fetching quiz:", err.message);
+                    req.flash("error", "Failed to load the quiz. Please try again.");
+                    return res.redirect("/");
+                }
+    
+                if (results.length === 0) {
+                    req.flash("error", "Quiz not found.");
+                    return res.redirect("/");
+                }
+    
+                const quizData = results.map((row) => ({
+                    question: he.decode(row.question),
+                    correctAnswer: he.decode(row.correct_answer),
+                    incorrectAnswers: JSON.parse(row.incorrect_answers).map((ans) => he.decode(ans)),
+                }));
+    
+                const title = he.decode(results[0].title);
+    
+                req.session.quizData = quizData;
+                req.session.currentQuizId = quizId;
+    
+                res.render("quiz.ejs", { title, quizData, username: req.session.username });
+            }
+        );
+    });
+    
+
+    // Route for viewing the quiz
+    app.get("/quiz/:id", isAuthenticated, (req, res) => {
+        const quizId = req.params.id; // Get the quiz ID from the URL
+    
+        // Fetch quiz details and questions from the database
+        db.query(
+            `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
+             FROM QUIZZES
+             JOIN QUIZ_QUESTIONS ON QUIZZES.id = QUIZ_QUESTIONS.quiz_id
+             WHERE QUIZZES.id = ?`,
+            [quizId],
+            (err, results) => {
+                if (err) {
+                    console.error("Error fetching quiz:", err.message);
+                    req.flash("error", "Failed to load the quiz. Please try again.");
+                    return res.redirect("/");
+                }
+    
+                if (results.length === 0) {
+                    req.flash("error", "Quiz not found.");
+                    return res.redirect("/");
+                }
+    
+                // Decode and format the questions
+                const quizData = results.map((row) => ({
+                    question: row.question,
+                    correctAnswer: row.correct_answer,
+                    incorrectAnswers: JSON.parse(row.incorrect_answers), // Parse JSON to array
+                }));
+    
+                const title = results[0].title; // Get the quiz title from the first result
+    
+                res.render("quiz.ejs", { title, quizData, username: req.session.username });
+            }
+        );
+    });
+    
+    
+    
+    
+    // Route to handle quiz submission and score calculation
+    app.post("/quiz-result", isAuthenticated, (req, res) => {
+        const userAnswers = req.body.answers; // Retrieve user-submitted answers
+        const quizData = req.session.quizData; // Retrieve quiz data from session
+    
         if (!quizData) {
             req.flash("error", "No quiz data found. Please generate a quiz first.");
             return res.redirect("/quiz-setup");
         }
     
-        // Decode HTML entities in questions and answers
-        const decodedQuizData = quizData.map((question) => ({
-            ...question,
-            question: he.decode(question.question),
-            correct_answer: he.decode(question.correct_answer),
-            incorrect_answers: question.incorrect_answers.map((answer) => he.decode(answer)),
-        }));
+        if (!userAnswers) {
+            req.flash("error", "No answers submitted. Please try again.");
+            return res.redirect(`/quiz/${req.session.currentQuizId}`); // Redirect to the current quiz
+        }
     
-        res.render("quiz.ejs", { quizData: decodedQuizData, username: req.session.username });
-    });
-    
-    // Route to handle quiz submission and score calculation
-    app.post("/quiz-result", isAuthenticated, (req, res) => {
-        const userAnswers = req.body.answers;
-        const quizData = req.session.quizData;
-
         let score = 0;
+    
+        // Compare user answers with correct answers
         quizData.forEach((question, index) => {
-            if (userAnswers[index] === question.correct_answer) {
+            if (userAnswers[index] === question.correctAnswer) {
+                console.log(question.correctAnswer)
                 score++;
             }
         });
-
-        res.render("quiz-result.ejs", { score, total: quizData.length, username: req.session.username });
+        console.log("Submitted Answers:", req.body.answers);
+console.log("Quiz Data:", req.session.quizData);
+        // Clear session data for the quiz
+        delete req.session.quizData;
+        delete req.session.currentQuizId;
+    
+        res.render("quiz-result.ejs", {
+            score,
+            total: quizData.length,
+            username: req.session.username,
+        });
     });
+    
 
 };

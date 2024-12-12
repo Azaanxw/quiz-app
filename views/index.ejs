@@ -39,7 +39,33 @@
         <% } %>
    <a href="/quiz-setup">
     <button class="create-quiz-button">Create a Quiz</button>
-   </a> 
+   </a>
+   <div class="quiz-list">
+    <h2>Available Quizzes</h2>
+
+    <% if (errorMessage.length > 0) { %>
+        <div class="flash-message error">
+            <%= errorMessage %>
+        </div>
+    <% } %>
+
+    <% if (successMessage.length > 0) { %>
+        <div class="flash-message success">
+            <%= successMessage %>
+        </div>
+    <% } %>
+
+    <ul>
+        <% quizzes.forEach(quiz => { %>
+            <li>
+                <strong><%= quiz.title %></strong> by <%= quiz.created_by %>
+                <small>(<%= new Date(quiz.created_at).toLocaleString() %>)</small>
+                <a href="/quiz/<%= quiz.id %>">Take Quiz</a>
+            </li>
+        <% }); %>
+    </ul>
+</div>
+ 
   <p>this is the home page for the quiz app</p>
 
   <div class="user-info">

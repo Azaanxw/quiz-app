@@ -16,19 +16,19 @@
                 <div class="question">
                     <p>Question <%= index + 1 %>: <%= question.question %></p>
                     <ul class="options">
-                        <% [question.correct_answer, ...question.incorrect_answers]
-                            .sort(() => Math.random() - 0.5)
-                            .forEach(answer => { %>
+                        <% const options = [question.correctAnswer, ...question.incorrectAnswers].sort(() => Math.random() - 0.5); %>
+                        <% options.forEach((option) => { %>
                             <li>
                                 <label>
-                                    <input type="radio" name="answers[<%= index %>]" value="<%= answer %>" required>
-                                    <%= answer %>
+                                    <input type="radio" name="answers[<%= index %>]" value="<%= option %>" required>
+                                    <%= option %>
                                 </label>
                             </li>
                         <% }); %>
                     </ul>
                 </div>
             <% }); %>
+            
             <button type="submit">Submit Quiz</button>
         </form>
     </div>
