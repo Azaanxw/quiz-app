@@ -269,3 +269,37 @@ a.return-home-link:hover {
     background-color: #0056b3;
     transform: translateY(-2px);
 }
+
+.search-container {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-form input {
+    padding: 10px;
+    font-size: 1em;
+    width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.search-form button {
+    padding: 10px 20px;
+    font-size: 1em;
+    color: #fff;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: auto; /* Adjusts the button width to fit content */
+    min-width: 80px; /* Ensures it isn't too small */
+    height: auto; /* Keeps it aligned with the input box */
+}
+
+.search-form button:hover {
+    background-color: #0056b3;
+}

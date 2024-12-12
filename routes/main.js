@@ -265,9 +265,11 @@ module.exports = function(app) {
 
     // Route for viewing the quiz
     app.get("/quiz/:id", isAuthenticated, (req, res) => {
-        const quizId = req.params.id; // Get the quiz ID from the URL
+        const quizId = req.params.id;
     
-        // Fetch quiz details and questions from the database
+        // Set the current quiz ID in the session
+        req.session.currentQuizId = quizId;
+    
         db.query(
             `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
              FROM QUIZZES
@@ -293,10 +295,18 @@ module.exports = function(app) {
                     incorrectAnswers: JSON.parse(row.incorrect_answers), // Parse JSON to array
                 }));
     
-                const title = results[0].title; // Get the quiz title from the first result
-                const successMessage = req.flash("success");
-                const errorMessage = req.flash("error");
-                res.render("quiz.ejs", { title, quizData, username: req.session.username,successMessage,errorMessage });
+                const title = results[0].title;
+    
+                // Store quiz data in session for later use
+                req.session.quizData = quizData;
+    
+                res.render("quiz.ejs", {
+                    title,
+                    quizData,
+                    username: req.session.username,
+                    successMessage: req.flash("success"),
+                    errorMessage: req.flash("error"),
+                });
             }
         );
     });
@@ -304,42 +314,119 @@ module.exports = function(app) {
     
     
     
+    
     // Route to handle quiz submission and score calculation
     app.post("/quiz-result", isAuthenticated, (req, res) => {
         const userAnswers = req.body.answers; // Retrieve user-submitted answers
-        const quizData = req.session.quizData; // Retrieve quiz data from session
+        const quizId = req.session.currentQuizId; // Retrieve the quiz ID from the session
     
-        if (!quizData) {
-            req.flash("error", "No quiz data found. Please generate a quiz first.");
-            return res.redirect("/quiz-setup");
+        if (!quizId) {
+            req.flash("error", "No quiz selected. Please choose a quiz first.");
+            return res.redirect("/");
         }
     
-        if (!userAnswers) {
-            req.flash("error", "No answers submitted. Please try again.");
-            return res.redirect(`/quiz/${req.session.currentQuizId}`); // Redirect to the current quiz
-        }
+        // Retrieve quiz data from session or database
+        const quizData = req.session.quizData || [];
+        if (quizData.length === 0) {
+            db.query(
+                `SELECT question, correct_answer, incorrect_answers
+                 FROM QUIZ_QUESTIONS
+                 WHERE quiz_id = ?`,
+                [quizId],
+                (err, results) => {
+                    if (err || results.length === 0) {
+                        console.error("Error fetching quiz questions:", err);
+                        req.flash("error", "Failed to load quiz questions. Please try again.");
+                        return res.redirect("/");
+                    }
     
+                    // Format fetched data
+                    const fetchedQuizData = results.map((row) => ({
+                        question: row.question,
+                        correctAnswer: row.correct_answer,
+                        incorrectAnswers: JSON.parse(row.incorrect_answers),
+                    }));
+    
+                    // Calculate and render the results
+                    calculateAndRenderResults(req, res, userAnswers, fetchedQuizData);
+                }
+            );
+        } else {
+            // Use session data
+            calculateAndRenderResults(req, res, userAnswers, quizData);
+        }
+    });
+    
+    
+    // Helper function to calculate score and render results
+    function calculateAndRenderResults(req, res, userAnswers, quizData) {
         let score = 0;
     
         // Compare user answers with correct answers
         quizData.forEach((question, index) => {
-            if (userAnswers[index] === question.correctAnswer) {
-                console.log(question.correctAnswer)
+            const userAnswer = (userAnswers[index] || "").trim().toLowerCase();
+            const correctAnswer = question.correctAnswer.trim().toLowerCase();
+            if (userAnswer === correctAnswer) {
                 score++;
             }
         });
-        console.log("Submitted Answers:", req.body.answers);
-console.log("Quiz Data:", req.session.quizData);
+    
         // Clear session data for the quiz
         delete req.session.quizData;
         delete req.session.currentQuizId;
     
+        // Render the results
         res.render("quiz-result.ejs", {
             score,
             total: quizData.length,
             username: req.session.username,
         });
+    }
+    
+    
+    app.get("/search", isAuthenticated, (req, res) => {
+        const { category } = req.query;
+    
+        if (!category) {
+            req.flash("error", "Please enter a category to search.");
+            return res.redirect("/");
+        }
+    
+        const searchTerm = `%${category.toLowerCase()}%`; // Use SQL wildcard for partial match
+    
+        // Query the database for quizzes matching the category name
+        db.query(
+            `SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by, CATEGORIES.name AS category_name
+             FROM QUIZZES
+             JOIN USERS ON QUIZZES.created_by = USERS.user_id
+             JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
+             WHERE LOWER(CATEGORIES.name) LIKE ? 
+             ORDER BY QUIZZES.created_at DESC`,
+            [searchTerm],
+            (err, quizzes) => {
+                if (err) {
+                    console.error("Error fetching quizzes:", err.message);
+                    req.flash("error", "Failed to fetch quizzes. Please try again.");
+                    return res.redirect("/");
+                }
+    
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+                const username = req.session.username || null;
+    
+                if (quizzes.length === 0) {
+                    req.flash("error", `No quizzes found matching "${category}".`);
+                    return res.redirect("/");
+                }
+    
+                res.render("index.ejs", {
+                    quizzes,
+                    successMessage,
+                    errorMessage,
+                    username,
+                });
+            }
+        );
     });
     
-
 };

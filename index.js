@@ -67,6 +67,5 @@ app.engine('html', ejs.renderFile);
 // Requires the main.js file inside the routes folder passing in the Express app and data as arguments
 require("./routes/main")(app);
 
-console.log(`Session Secret Key: ${secretSessionKey}`);
 // Start the web app listening
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
