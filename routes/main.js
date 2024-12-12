@@ -33,22 +33,43 @@ module.exports = function(app) {
 
     // Handle our routes
     app.get("/", isAuthenticated, (req, res) => {
+        // Fetch leaderboard data (top 5 users by score)
         db.query(
-            "SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
-            (err, quizzes) => {
+            "SELECT username, score FROM USERS ORDER BY score DESC LIMIT 5",
+            (err, leaderboard) => {
                 if (err) {
-                    console.error("Error fetching quizzes:", err.message);
-                    req.flash("error", "Failed to fetch quizzes. Please try again.");
-                    return res.render("index.ejs", { quizzes: [], successMessage: null, errorMessage: req.flash("error") });
+                    console.error("Error fetching leaderboard:", err.message);
+                    leaderboard = [];
                 }
     
-                const successMessage = req.flash("success");
-                const errorMessage = req.flash("error");
-                const username = req.session.username || null; // Retrieve the username from the session
-                res.render("index.ejs", { quizzes, successMessage, errorMessage, username });
+                // Fetch quizzes data
+                db.query(
+                    "SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
+                    (err, quizzes) => {
+                        if (err) {
+                            console.error("Error fetching quizzes:", err.message);
+                            quizzes = [];
+                        }
+    
+                        const successMessage = req.flash("success");
+                        const errorMessage = req.flash("error");
+                        const username = req.session.username || null; // Retrieve the username from the session
+    
+                        // Render the index page with leaderboard and quizzes
+                        res.render("index.ejs", {
+                            quizzes,
+                            leaderboard,
+                            successMessage,
+                            errorMessage,
+                            username,
+                        });
+                    }
+                );
             }
         );
     });
+    
+    
 
     app.get("/about", isAuthenticated, (req, res) => {
         const successMessage = req.flash("success");
@@ -318,44 +339,61 @@ module.exports = function(app) {
     // Route to handle quiz submission and score calculation
     app.post("/quiz-result", isAuthenticated, (req, res) => {
         const userAnswers = req.body.answers; // Retrieve user-submitted answers
-        const quizId = req.session.currentQuizId; // Retrieve the quiz ID from the session
+        const quizData = req.session.quizData; // Retrieve quiz data from session
+        const userId = req.session.userId; // Get user ID from the session
     
-        if (!quizId) {
-            req.flash("error", "No quiz selected. Please choose a quiz first.");
-            return res.redirect("/");
+        if (!quizData) {
+            req.flash("error", "No quiz data found. Please generate a quiz first.");
+            return res.redirect("/quiz-setup");
         }
     
-        // Retrieve quiz data from session or database
-        const quizData = req.session.quizData || [];
-        if (quizData.length === 0) {
-            db.query(
-                `SELECT question, correct_answer, incorrect_answers
-                 FROM QUIZ_QUESTIONS
-                 WHERE quiz_id = ?`,
-                [quizId],
-                (err, results) => {
-                    if (err || results.length === 0) {
-                        console.error("Error fetching quiz questions:", err);
-                        req.flash("error", "Failed to load quiz questions. Please try again.");
-                        return res.redirect("/");
-                    }
+        if (!userAnswers) {
+            req.flash("error", "No answers submitted. Please try again.");
+            return res.redirect(`/quiz/${req.session.currentQuizId}`); // Redirect to the current quiz
+        }
     
-                    // Format fetched data
-                    const fetchedQuizData = results.map((row) => ({
-                        question: row.question,
-                        correctAnswer: row.correct_answer,
-                        incorrectAnswers: JSON.parse(row.incorrect_answers),
-                    }));
+        let score = 0;
     
-                    // Calculate and render the results
-                    calculateAndRenderResults(req, res, userAnswers, fetchedQuizData);
+        // Compare user answers with correct answers
+        quizData.forEach((question, index) => {
+            if (userAnswers[index] === question.correctAnswer) {
+                score++;
+            }
+        });
+    
+        // Update user score in the USERS table
+        db.query(
+            "UPDATE USERS SET score = score + ? WHERE user_id = ?",
+            [score, userId],
+            (err) => {
+                if (err) {
+                    console.error("Error updating user score:", err.message);
                 }
-            );
-        } else {
-            // Use session data
-            calculateAndRenderResults(req, res, userAnswers, quizData);
-        }
+            }
+        );
+    
+        // Update leaderboard
+        db.query(
+            "INSERT INTO LEADERBOARD (user_id, score) VALUES (?, ?) ON DUPLICATE KEY UPDATE score = GREATEST(score, VALUES(score))",
+            [userId, score],
+            (err) => {
+                if (err) {
+                    console.error("Error updating leaderboard:", err.message);
+                }
+            }
+        );
+    
+        // Clear session data for the quiz
+        delete req.session.quizData;
+        delete req.session.currentQuizId;
+    
+        res.render("quiz-result.ejs", {
+            score,
+            total: quizData.length,
+            username: req.session.username,
+        });
     });
+    
     
     
     // Helper function to calculate score and render results
