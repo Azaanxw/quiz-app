@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    margin: 0;
+    margin: 20px;
     padding: 0;
     background-color: #f4f4f9;
     display: flex;
@@ -8,10 +8,11 @@ body {
     align-items: center;
     height: 100vh;
     overflow-y: auto; /* Allow page scrolling */
+    
 }
 
 .container {
-    max-width: 400px; /* Restrict the width */
+    max-width: 450px; /* Restrict the width */
     margin: 20px auto; /* Center the container */
     padding: 20px;
     background: white;
@@ -195,7 +196,7 @@ footer a:hover {
 .quiz-container {
     margin: 20px auto;
     padding: 10px;
-    width: 80%;
+    width: 90%;
     max-width: 800px;
     border: 1px solid #ddd;
     border-radius: 5px;
