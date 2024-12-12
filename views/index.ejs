@@ -40,31 +40,18 @@
     <button class="create-quiz-button">Create a Quiz</button>
    </a>
    <div class="quiz-list">
-
-    <% if (errorMessage.length > 0) { %>
-        <div class="flash-message error">
-            <%= errorMessage %>
-        </div>
-    <% } %>
-
-    <% if (successMessage.length > 0) { %>
-        <div class="flash-message success">
-            <%= successMessage %>
-        </div>
-    <% } %>
-
    <!-- Available Quizzes Section -->
    <div class="quiz-list">
     <h2>Available Quizzes</h2>
     <% quizzes.forEach(quiz => { %>
         <div class="quiz-item">
             <div class="quiz-info">
-                <div class="quiz-title"><%= quiz.formattedTitle %></div>
+                <div class="quiz-title"><%= quiz.title %></div>
                 <div class="quiz-meta">
                     Created by <%= quiz.created_by %> on <%= new Date(quiz.created_at).toLocaleString() %>
                 </div>
             </div>
-            <a href="/quiz/<%= quiz.id %>" class="take-quiz-link">Take Quiz</a>
+            <a href="/quiz/<%= quiz.quiz_id %>" class="take-quiz-link">Take Quiz</a>
         </div>
     <% }); %>
 </div>

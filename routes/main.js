@@ -3,6 +3,16 @@ module.exports = function(app) {
     //Password hashing setup
     const bcrypt = require("bcrypt"); 
     const saltRounds = 10; // Number of salt rounds for hashing
+    const categoryMap = {
+        9: "General Knowledge",
+        10: "Books",
+        11: "Film",
+        12: "Music",
+        21: "Sports",
+        25: "Art",
+        27: "Animals",
+        28: "Vehicles",
+    };
     
 
     // Request module
@@ -24,7 +34,7 @@ module.exports = function(app) {
     // Handle our routes
     app.get("/", isAuthenticated, (req, res) => {
         db.query(
-            "SELECT QUIZZES.id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
+            "SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
             (err, quizzes) => {
                 if (err) {
                     console.error("Error fetching quizzes:", err.message);
@@ -174,7 +184,8 @@ module.exports = function(app) {
 
     // Route to fetch quiz questions
     app.post("/generate-quiz", isAuthenticated, (req, res) => {
-        const { amount, category, difficulty } = req.body;
+        const { amount, category, difficulty } = req.body; // Ensure 'difficulty' is captured
+    
         const apiUrl = `https://opentdb.com/api.php?amount=${amount}&category=${category}&difficulty=${difficulty}&type=multiple`;
     
         request(apiUrl, (error, response, body) => {
@@ -205,11 +216,12 @@ module.exports = function(app) {
     
             const userId = req.session.userId;
     
-            // Save quiz metadata
-            const title = `Quiz (${category}, ${difficulty}, ${amount} Questions)`;
+            const title = `Quiz (${categoryMap[category] || "Unknown Category"}, ${difficulty}, ${amount} Questions)`;
+
+    
             db.query(
-                "INSERT INTO QUIZZES (title, created_by) VALUES (?, ?)",
-                [title, userId],
+                "INSERT INTO QUIZZES (title, category, difficulty, num_questions, created_by) VALUES (?, ?, ?, ?, ?)",
+                [title, category, difficulty, amount, userId],
                 (err, results) => {
                     if (err) {
                         console.error("Error saving quiz:", err.message);
@@ -219,12 +231,11 @@ module.exports = function(app) {
     
                     const quizId = results.insertId;
     
-                    // Save questions
                     const questions = quizData.map((q) => [
                         quizId,
                         q.question,
                         q.correctAnswer,
-                        JSON.stringify(q.incorrectAnswers), // Store incorrect answers as JSON
+                        JSON.stringify(q.incorrectAnswers),
                     ]);
     
                     db.query(
@@ -246,46 +257,10 @@ module.exports = function(app) {
             );
         });
     });
-    
 
     const he = require("he"); // Import the library
 
-    app.get("/quiz/:id", isAuthenticated, (req, res) => {
-        const quizId = req.params.id;
     
-        db.query(
-            `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
-             FROM QUIZZES
-             JOIN QUIZ_QUESTIONS ON QUIZZES.id = QUIZ_QUESTIONS.quiz_id
-             WHERE QUIZZES.id = ?`,
-            [quizId],
-            (err, results) => {
-                if (err) {
-                    console.error("Error fetching quiz:", err.message);
-                    req.flash("error", "Failed to load the quiz. Please try again.");
-                    return res.redirect("/");
-                }
-    
-                if (results.length === 0) {
-                    req.flash("error", "Quiz not found.");
-                    return res.redirect("/");
-                }
-    
-                const quizData = results.map((row) => ({
-                    question: he.decode(row.question),
-                    correctAnswer: he.decode(row.correct_answer),
-                    incorrectAnswers: JSON.parse(row.incorrect_answers).map((ans) => he.decode(ans)),
-                }));
-    
-                const title = he.decode(results[0].title);
-    
-                req.session.quizData = quizData;
-                req.session.currentQuizId = quizId;
-    
-                res.render("quiz.ejs", { title, quizData, username: req.session.username });
-            }
-        );
-    });
     
 
     // Route for viewing the quiz
@@ -296,8 +271,8 @@ module.exports = function(app) {
         db.query(
             `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
              FROM QUIZZES
-             JOIN QUIZ_QUESTIONS ON QUIZZES.id = QUIZ_QUESTIONS.quiz_id
-             WHERE QUIZZES.id = ?`,
+             JOIN QUIZ_QUESTIONS ON QUIZZES.quiz_id = QUIZ_QUESTIONS.quiz_id
+             WHERE QUIZZES.quiz_id = ?`,
             [quizId],
             (err, results) => {
                 if (err) {
@@ -319,8 +294,9 @@ module.exports = function(app) {
                 }));
     
                 const title = results[0].title; // Get the quiz title from the first result
-    
-                res.render("quiz.ejs", { title, quizData, username: req.session.username });
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+                res.render("quiz.ejs", { title, quizData, username: req.session.username,successMessage,errorMessage });
             }
         );
     });

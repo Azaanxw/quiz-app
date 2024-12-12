@@ -17,19 +17,32 @@ CREATE TABLE IF NOT EXISTS LEADERBOARD (
     FOREIGN KEY (user_id) REFERENCES USERS(user_id)
 );
 
--- QUIZ Table
-CREATE TABLE QUIZZES (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    category INT NOT NULL,
-    difficulty VARCHAR(50) NOT NULL,
-    num_questions INT NOT NULL, 
-    created_by INT NOT NULL, -- Link to user table
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES USERS(user_id)
+CREATE TABLE CATEGORIES (
+    category_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
 );
 
-
+INSERT INTO CATEGORIES (category_id, name) VALUES
+(9, 'General Knowledge'),
+(10, 'Books'),
+(11, 'Film'),
+(12, 'Music'),
+(21, 'Sports'),
+(25, 'Art'),
+(27, 'Animals'),
+(28, 'Vehicles');
+-- QUIZ Table
+CREATE TABLE QUIZZES (
+    quiz_id INT AUTO_INCREMENT PRIMARY KEY,       
+    title VARCHAR(255) NOT NULL,                         
+    category INT NOT NULL,                                 
+    difficulty ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'easy', 
+    num_questions INT NOT NULL,                           
+    created_by INT NOT NULL,                              
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,        
+    FOREIGN KEY (category) REFERENCES CATEGORIES(category_id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
 -- QUESTION Table
 CREATE TABLE QUIZ_QUESTIONS (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,5 +50,5 @@ CREATE TABLE QUIZ_QUESTIONS (
     question TEXT NOT NULL,
     correct_answer TEXT NOT NULL,
     incorrect_answers TEXT NOT NULL,
-    FOREIGN KEY (quiz_id) REFERENCES QUIZZES(id) ON DELETE CASCADE
+    FOREIGN KEY (quiz_id) REFERENCES QUIZZES(quiz_id) ON DELETE CASCADE
 );
