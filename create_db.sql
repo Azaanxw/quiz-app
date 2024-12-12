@@ -21,8 +21,12 @@ CREATE TABLE IF NOT EXISTS LEADERBOARD (
 CREATE TABLE QUIZZES (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    category INT NOT NULL,
+    difficulty VARCHAR(50) NOT NULL,
+    num_questions INT NOT NULL, 
     created_by INT NOT NULL, -- Link to user table
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES USERS(user_id)
 );
 
 
