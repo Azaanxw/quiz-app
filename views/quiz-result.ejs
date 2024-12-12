@@ -15,5 +15,12 @@
             <a href="/quiz-setup">Try Another Quiz</a>
         </div>
     </div>
-    
+    <div class="user-info">
+        <% if (username) { %>
+            <p>Welcome, <%= username %>!</p>
+            <a href="/logout" class="logout-button">Logout</a>
+        <% } else { %>
+            <p>Welcome, Guest!</p>
+        <% } %>
+    </div>
 </body>

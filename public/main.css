@@ -133,6 +133,7 @@ footer a:hover {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-top: 20px;
 }
 
 .logout-button:hover {
@@ -144,10 +145,30 @@ footer a:hover {
     justify-content: space-between;
     align-items: center;
     margin: 20px;
+    flex-direction: column;
 }
 
 .user-info p {
     margin: 0;
     font-size: 16px;
     color: #333;
+}
+
+.create-quiz-button {
+    background-color: #007bff; 
+    color: white;
+    font-size: medium;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 85%; 
+    text-decoration: none; 
+    display: inline-block; 
+    text-align: center; 
+    margin-top: 20px; 
+}
+
+.create-quiz-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
 }
