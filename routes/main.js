@@ -338,61 +338,61 @@ module.exports = function(app) {
     
     // Route to handle quiz submission and score calculation
     app.post("/quiz-result", isAuthenticated, (req, res) => {
-        const userAnswers = req.body.answers; // Retrieve user-submitted answers
-        const quizData = req.session.quizData; // Retrieve quiz data from session
-        const userId = req.session.userId; // Get user ID from the session
+        const userAnswers = req.body.answers; // Submitted answers
+        const quizData = req.session.quizData; // Quiz data from session
+        const userId = req.session.userId;
     
         if (!quizData) {
             req.flash("error", "No quiz data found. Please generate a quiz first.");
             return res.redirect("/quiz-setup");
         }
     
-        if (!userAnswers) {
-            req.flash("error", "No answers submitted. Please try again.");
-            return res.redirect(`/quiz/${req.session.currentQuizId}`); // Redirect to the current quiz
-        }
-    
         let score = 0;
     
-        // Compare user answers with correct answers
+        // Compare answers
         quizData.forEach((question, index) => {
             if (userAnswers[index] === question.correctAnswer) {
                 score++;
             }
         });
     
-        // Update user score in the USERS table
-        db.query(
-            "UPDATE USERS SET score = score + ? WHERE user_id = ?",
-            [score, userId],
-            (err) => {
-                if (err) {
-                    console.error("Error updating user score:", err.message);
-                }
+        // Update the user's score in the USERS table
+        const updateUserScoreQuery = `
+            UPDATE USERS
+            SET score = score + ?
+            WHERE user_id = ?;
+        `;
+        db.query(updateUserScoreQuery, [score, userId], (err) => {
+            if (err) {
+                console.error("Error updating user score:", err);
+                req.flash("error", "Failed to update your score.");
+                return res.redirect("/");
             }
-        );
     
-        // Update leaderboard
-        db.query(
-            "INSERT INTO LEADERBOARD (user_id, score) VALUES (?, ?) ON DUPLICATE KEY UPDATE score = GREATEST(score, VALUES(score))",
-            [userId, score],
-            (err) => {
+            // Sync with LEADERBOARD table
+            const updateLeaderboardQuery = `
+                INSERT INTO LEADERBOARD (user_id, score)
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE score = VALUES(score);
+            `;
+            db.query(updateLeaderboardQuery, [userId, score], (err) => {
                 if (err) {
-                    console.error("Error updating leaderboard:", err.message);
+                    console.error("Error updating leaderboard:", err);
+                    req.flash("error", "Failed to update the leaderboard.");
+                    return res.redirect("/");
                 }
-            }
-        );
     
-        // Clear session data for the quiz
-        delete req.session.quizData;
-        delete req.session.currentQuizId;
-    
-        res.render("quiz-result.ejs", {
-            score,
-            total: quizData.length,
-            username: req.session.username,
+                // Show quiz results
+                req.flash("success", `You scored ${score} points!`);
+                res.render("quiz-result.ejs", {
+                    score,
+                    total: quizData.length,
+                    username: req.session.username,
+                });
+            });
         });
     });
+    
     
     
     
