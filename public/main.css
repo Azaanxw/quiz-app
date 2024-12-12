@@ -6,7 +6,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     overflow-y: auto; /* Allow page scrolling */
     
 }
@@ -384,3 +383,4 @@ a.return-home-link:hover {
 .leaderboard-entry:last-child {
     border-bottom: none;
 }
+

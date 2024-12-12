@@ -41,16 +41,9 @@
       </div>
   <% } %>
    <!-- Available Quizzes Section -->
-   <div class="quiz-list">
-    <div class="search-container">
-      <form action="/search" method="GET" class="search-form">
-          <input type="text" name="category" placeholder="Search by category" required>
-          <button type="submit">Search</button>
-      </form>
-  </div>
   
     <div class="leaderboard-container">
-      <h2>Leaderboard</h2>
+      <h2>Top 5 Leaderboard</h2>
       <div class="leaderboard-frame">
           <% leaderboard.forEach((user, index) => { %>
               <div class="leaderboard-entry">
@@ -61,6 +54,12 @@
           <% }); %>
       </div>
   </div>
+  <div class="search-container">
+    <form action="/search" method="GET" class="search-form">
+        <input type="text" name="category" placeholder="Search by category" required>
+        <button type="submit">Search</button>
+    </form>
+</div>
   <div class="quiz-container">
     <h2>Available Quizzes</h2>
     <div class="quiz-list">
