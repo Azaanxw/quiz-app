@@ -7,13 +7,19 @@
     <title>Quizhub About</title>
   </head>
   <body>
+    <div class="container">
+      <a href="/" class="return-home-link">Return to Home</a>
+      <h1>About QuizHub</h1>
+    <h2>
+      This website allows different users to create quizzes and test their knowledge.
+    </h2>
     <div class="user-info">
       <% if (username) { %>
-          <p>Welcome, <%= username %>!</p>
           <a href="/logout" class="logout-button">Logout</a>
       <% } else { %>
           <p>Welcome, Guest!</p>
       <% } %>
   </div>
+</div>
   </body> 
 </html>

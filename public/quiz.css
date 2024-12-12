@@ -211,3 +211,20 @@ body {
 .logout-button:hover {
     background-color: #d32f2f; /* Darker red on hover */
 }
+
+
+a.return-home-link {
+    display: inline-block; 
+    padding: 8px 12px; 
+    background-color: #5cb85c; 
+    color: white; 
+    text-decoration: none; 
+    border-radius: 5px; 
+    margin-bottom: 10px; 
+    transition: background-color 0.3s ease; 
+}
+
+a.return-home-link:hover {
+    background-color: #4cae4c; 
+}
+
