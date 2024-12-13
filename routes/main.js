@@ -23,7 +23,7 @@ module.exports = function (app) {
     } else {
       // if the user isn't logged in, then redirect to the home page
       console.log("Error! Please login to see all pages!");
-      res.redirect("/login");
+      res.redirect("/usr/293/login");
     }
   };
 
@@ -37,7 +37,7 @@ module.exports = function (app) {
         if (err) {
             console.error("Error fetching leaderboard:", err.message);
             req.flash("error", "Failed to fetch leaderboard data.");
-            return res.redirect("/login");
+            return res.redirect("/usr/293/login");
         }
 
         const leaderboard = leaderboardResults[0]; // The first result set contains the leaderboard data
@@ -47,7 +47,7 @@ module.exports = function (app) {
             if (err) {
                 console.error("Error fetching quizzes:", err.message);
                 req.flash("error", "Failed to fetch quizzes.");
-                return res.redirect("/login");
+                return res.redirect("/usr/293/login");
             }
 
             const quizzes = quizResults[0]; // The first result set contains the quizzes data
@@ -57,7 +57,7 @@ module.exports = function (app) {
                 if (err) {
                     console.error("Error fetching user score:", err.message);
                     req.flash("error", "Failed to fetch user score.");
-                    return res.redirect("/login");
+                    return res.redirect("/usr/293/login");
                 }
 
                 const userScore = userScoreResults.length > 0 ? userScoreResults[0].score : 0;
@@ -103,7 +103,7 @@ module.exports = function (app) {
             if (error) {
                 console.error("Database Error:", error.message);
                 req.flash("error", "Internal Server Error");
-                return res.redirect("/login");
+                return res.redirect("/usr/293/login");
             }
 
             const user = results[0][0]; // Extract the first result from the procedure
@@ -120,26 +120,26 @@ module.exports = function (app) {
                         if (err) {
                             console.error("Session Save Error:", err.message);
                             req.flash("error", "Failed to log in. Please try again.");
-                            return res.redirect("/login");
+                            return res.redirect("/usr/293/login");
                         }
 
                         req.flash("success", "Login successful!");
-                        return res.redirect("/");
+                        return res.redirect("/usr/293/");
 
                     });
                 } else {
                     req.flash("error", "Incorrect email or password!");
-                    return res.redirect("/login");
+                    return res.redirect("/usr/293/login");
                 }
             } else {
                 req.flash("error", "Incorrect email or password!");
-                return res.redirect("/login");
+                return res.redirect("/usr/293/login");
             }
         });
     } catch (err) {
         console.error("Error during login:", err.message);
         req.flash("error", "An error occurred while logging in.");
-        return res.redirect("/login");
+        return res.redirect("/usr/293/login");
     }
 });
 
@@ -159,7 +159,7 @@ module.exports = function (app) {
     // Validate inputs
     if (password !== confirmPassword) {
       req.flash("error", "Passwords do not match!");
-      return res.redirect("/register");
+      return res.redirect("/usr/293/register");
     }
 
     try {
@@ -178,11 +178,11 @@ module.exports = function (app) {
               console.error("Database Error:", error.message);
               req.flash("error", "An error occurred while registering.");
             }
-            return res.redirect("/register");
+            return res.redirect("/usr/293/register");
           }
 
           req.flash("success", "Registration successful! Please log in.");
-          res.redirect("/login");
+          res.redirect("/usr/293/login");
         }
       );
     } catch (err) {
@@ -191,7 +191,7 @@ module.exports = function (app) {
         "error",
         "An error occurred while processing your registration."
       );
-      res.redirect("/register");
+      res.redirect("/usr/293/register");
     }
   });
 
@@ -201,12 +201,12 @@ module.exports = function (app) {
         if (err) {
             console.error("Error destroying session:", err.message);
             req.flash("error", "Failed to log out. Please try again.");
-            return res.redirect("/");
+            return res.redirect("/usr/293/");
         }
 
         res.clearCookie("connect.sid"); // Clear session cookie
         console.log("Logged out successfully!");
-        res.redirect("/login");
+        res.redirect("/usr/293/login");
     });
 });
 
@@ -245,7 +245,7 @@ module.exports = function (app) {
           "error",
           "Failed to fetch quiz data. Please check your internet connection or try again later."
         );
-        return res.redirect("/quiz-setup");
+        return res.redirect("/usr/293/quiz-setup");
       }
 
       const apiResponse = JSON.parse(body);
@@ -255,7 +255,7 @@ module.exports = function (app) {
           "error",
           "No questions available for the selected options. Please try different settings."
         );
-        return res.redirect("/quiz-setup");
+        return res.redirect("/usr/293/quiz-setup");
       }
 
       const quizData = apiResponse.results.map((q) => ({
@@ -274,7 +274,7 @@ module.exports = function (app) {
         if (err) {
           console.error("Transaction Error:", err.message);
           req.flash("error", "An error occurred. Please try again.");
-          return res.redirect("/quiz-setup");
+          return res.redirect("/usr/293/quiz-setup");
         }
 
         // Use stored procedure to create a quiz
@@ -286,7 +286,7 @@ module.exports = function (app) {
               return db.rollback(() => {
                 console.error("Error saving quiz:", err.message);
                 req.flash("error", "Failed to save the quiz.");
-                res.redirect("/quiz-setup");
+                res.redirect("/usr/293/quiz-setup");
               });
             }
 
@@ -296,7 +296,7 @@ module.exports = function (app) {
               return db.rollback(() => {
                 console.error("Error: Quiz ID not returned by sp_add_quiz.");
                 req.flash("error", "Failed to create the quiz.");
-                res.redirect("/quiz-setup");
+                res.redirect("/usr/293/quiz-setup");
               });
             }
 
@@ -315,7 +315,7 @@ module.exports = function (app) {
                   return db.rollback(() => {
                     console.error("Error saving questions:", err.message);
                     req.flash("error", "Failed to save quiz questions.");
-                    res.redirect("/quiz-setup");
+                    res.redirect("/usr/293/quiz-setup");
                   });
                 }
 
@@ -327,13 +327,13 @@ module.exports = function (app) {
                         "error",
                         "An error occurred. Please try again."
                       );
-                      res.redirect("/quiz-setup");
+                      res.redirect("/usr/293/quiz-setup");
                     });
                   }
 
                   req.session.quizData = quizData;
                   req.flash("success", "Quiz successfully created!");
-                  res.redirect("/");
+                  res.redirect("/usr/293/");
                 });
               }
             );
@@ -356,14 +356,14 @@ module.exports = function (app) {
       if (err) {
         console.error("Error fetching quiz:", err.message);
         req.flash("error", "Failed to load the quiz. Please try again.");
-        return res.redirect("/");
+        return res.redirect("/usr/293/");
       }
 
       // Check if the quiz exists
       const quizRows = results[0];
       if (!quizRows || quizRows.length === 0) {
         req.flash("error", "Quiz not found.");
-        return res.redirect("/");
+        return res.redirect("/usr/293/");
       }
 
       // Decode and format the questions
@@ -397,7 +397,7 @@ module.exports = function (app) {
 
     if (!quizData) {
       req.flash("error", "No quiz data found. Please generate a quiz first.");
-      return res.redirect("/quiz-setup");
+      return res.redirect("/usr/293/quiz-setup");
     }
 
     let score = 0;
@@ -415,7 +415,7 @@ module.exports = function (app) {
       if (err) {
         console.error("Transaction Error:", err.message);
         req.flash("error", "An error occurred. Please try again.");
-        return res.redirect("/");
+        return res.redirect("/usr/293/");
       }
 
       // Call stored procedure to update user's score
@@ -424,7 +424,7 @@ module.exports = function (app) {
           return db.rollback(() => {
             console.error("Error updating user score:", err.message);
             req.flash("error", "Failed to update your score.");
-            res.redirect("/");
+            res.redirect("/usr/293/");
           });
         }
 
@@ -434,7 +434,7 @@ module.exports = function (app) {
             return db.rollback(() => {
               console.error("Error updating leaderboard:", err.message);
               req.flash("error", "Failed to update the leaderboard.");
-              res.redirect("/");
+              res.redirect("/usr/293/");
             });
           }
 
@@ -444,7 +444,7 @@ module.exports = function (app) {
               return db.rollback(() => {
                 console.error("Commit Error:", err.message);
                 req.flash("error", "An error occurred. Please try again.");
-                res.redirect("/");
+                res.redirect("/usr/293/");
               });
             }
 
@@ -494,7 +494,7 @@ module.exports = function (app) {
 
     if (!category) {
         req.flash("error", "Please enter a category to search.");
-        return res.redirect("/");
+        return res.redirect("/usr/293/");
     }
 
     const searchTerm = `%${category.toLowerCase()}%`; // Use SQL wildcard for partial match
@@ -505,7 +505,7 @@ module.exports = function (app) {
         if (err) {
             console.error("Error fetching leaderboard:", err.message);
             req.flash("error", "Failed to fetch leaderboard data.");
-            return res.redirect("/");
+            return res.redirect("/usr/293/");
         }
 
         const leaderboard = leaderboardResults[0]; // The first result set contains leaderboard data
@@ -515,7 +515,7 @@ module.exports = function (app) {
             if (err) {
                 console.error("Error fetching quizzes:", err.message);
                 req.flash("error", "Failed to fetch quizzes. Please try again.");
-                return res.redirect("/");
+                return res.redirect("/usr/293/");
             }
 
             const quizzes = quizResults[0]; // The first result set contains the quizzes data
@@ -525,7 +525,7 @@ module.exports = function (app) {
                 if (err) {
                     console.error("Error fetching user score:", err.message);
                     req.flash("error", "Failed to fetch user score.");
-                    return res.redirect("/");
+                    return res.redirect("/usr/293/");
                 }
 
                 const userScore = userScoreResults.length > 0 ? userScoreResults[0].score : 0;
@@ -535,7 +535,7 @@ module.exports = function (app) {
 
                 if (!quizzes || quizzes.length === 0) {
                     req.flash("error", `No quizzes found matching "${category}".`);
-                    return res.redirect("/");
+                    return res.redirect("/usr/293/");
                 }
 
                 // Render the index page with quizzes, leaderboard, and user score
