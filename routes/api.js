@@ -1,76 +1,55 @@
 const express = require('express');
 const router = express.Router();
 
-// Route to get the top 5 leaderboard entries
-router.get('/leaderboard', (req, res, next) => {
-    // SQL query to retrieve the top 5 leaderboard entries
-    const sqlQuery = `
-        SELECT USERS.username, LEADERBOARD.score 
-        FROM LEADERBOARD
-        JOIN USERS ON LEADERBOARD.user_id = USERS.user_id
-        ORDER BY LEADERBOARD.score DESC
-        LIMIT 5;
-    `;
 
-    // Execute the query
-    db.query(sqlQuery, (err, results) => {
+// Route to get the top 5 leaderboard entries
+router.get('/leaderboard', (req, res) => {
+    // Call the stored procedure to fetch the top 5 leaderboard entries
+    db.query("CALL sp_get_leaderboard()", (err, results) => {
         if (err) {
-            console.error('Error fetching leaderboard:', err.message);
-            return res.status(500).json({ error: 'Failed to fetch leaderboard data.' });
+            console.error("Error fetching leaderboard:", err.message);
+            return res.status(500).json({ error: "Failed to fetch leaderboard data." });
         }
 
-        // Return the results as a JSON response
-        res.json(results);
+        // The first result set contains the leaderboard data
+        const leaderboard = results[0];
+        res.json(leaderboard);
     });
 });
 
-module.exports = router;
-
-
-// Route to search quizzes by category
 // Quizzes API: Search quizzes by category or display all quizzes if no category is provided
 router.get("/quizzes", (req, res) => {
     const { category } = req.query;
 
     if (!category) {
-        // No category provided, show all quizzes
-        db.query(
-            `SELECT QUIZZES.quiz_id, QUIZZES.title, CATEGORIES.name AS category, QUIZZES.difficulty, QUIZZES.num_questions, USERS.username AS created_by
-             FROM QUIZZES
-             JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
-             JOIN USERS ON QUIZZES.created_by = USERS.user_id`,
-            (err, results) => {
-                if (err) {
-                    console.error("Error fetching quizzes:", err.message);
-                    return res.status(500).json({ error: "Failed to fetch quizzes." });
-                }
-
-                res.json(results);
+        // No category provided, call the stored procedure to fetch all quizzes
+        db.query("CALL sp_get_quizzes()", (err, results) => {
+            if (err) {
+                console.error("Error fetching quizzes:", err.message);
+                return res.status(500).json({ error: "Failed to fetch quizzes." });
             }
-        );
+
+            // The first result set contains the quizzes data
+            const quizzes = results[0];
+            res.json(quizzes);
+        });
     } else {
-        // Category provided, search for matching quizzes
+        // Category provided, call the stored procedure to search for quizzes
         const searchTerm = `%${category}%`;
-        db.query(
-            `SELECT QUIZZES.quiz_id, QUIZZES.title, CATEGORIES.name AS category, QUIZZES.difficulty, QUIZZES.num_questions, USERS.username AS created_by
-             FROM QUIZZES
-             JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
-             JOIN USERS ON QUIZZES.created_by = USERS.user_id
-             WHERE CATEGORIES.name LIKE ?`,
-            [searchTerm],
-            (err, results) => {
-                if (err) {
-                    console.error("Error fetching quizzes:", err.message);
-                    return res.status(500).json({ error: "Failed to fetch quizzes." });
-                }
-
-                if (results.length === 0) {
-                    return res.json({ message: "No quizzes found for the specified category." });
-                }
-
-                res.json(results);
+        db.query("CALL sp_search_quizzes(?)", [searchTerm], (err, results) => {
+            if (err) {
+                console.error("Error searching quizzes:", err.message);
+                return res.status(500).json({ error: "Failed to search quizzes." });
             }
-        );
+
+            const quizzes = results[0];
+            if (quizzes.length === 0) {
+                return res.json({ message: "No quizzes found for the specified category." });
+            }
+
+            res.json(quizzes);
+        });
     }
 });
 
+module.exports = router;

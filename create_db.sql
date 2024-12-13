@@ -10,19 +10,6 @@ CREATE TABLE IF NOT EXISTS USERS(
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-DELIMITER //
-
-CREATE TRIGGER after_user_insert
-AFTER INSERT ON USERS
-FOR EACH ROW
-BEGIN
-    INSERT INTO LEADERBOARD (user_id, score)
-    VALUES (NEW.user_id, NEW.score)
-    ON DUPLICATE KEY UPDATE score = NEW.score;
-END //
-
-DELIMITER ;
-
 -- LEADERBOARD Table
 CREATE TABLE IF NOT EXISTS LEADERBOARD (
     id INT AUTO_INCREMENT PRIMARY KEY, 
@@ -67,3 +54,205 @@ CREATE TABLE QUIZ_QUESTIONS (
     incorrect_answers TEXT NOT NULL,
     FOREIGN KEY (quiz_id) REFERENCES QUIZZES(quiz_id) ON DELETE CASCADE
 );
+
+-- VIEWS
+-- Leaderboard view
+CREATE VIEW vw_leaderboard AS
+SELECT USERS.username, LEADERBOARD.score
+FROM LEADERBOARD
+JOIN USERS ON LEADERBOARD.user_id = USERS.user_id
+ORDER BY LEADERBOARD.score DESC;
+
+-- Quiz details view
+CREATE OR REPLACE VIEW vw_quiz_details AS
+SELECT 
+    QUIZZES.quiz_id,
+    QUIZZES.title,
+    CATEGORIES.name AS category,
+    QUIZZES.difficulty,
+    QUIZZES.num_questions,
+    QUIZZES.created_at 
+FROM QUIZZES
+JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id;
+
+-- Categories view 
+CREATE VIEW vw_categories AS
+SELECT category_id, name
+FROM CATEGORIES;
+
+-- STORED PROCEDURES
+
+-- Register user
+DELIMITER //
+
+CREATE PROCEDURE sp_register_user(
+    IN username VARCHAR(50),
+    IN email VARCHAR(100),
+    IN password VARCHAR(255)
+)
+BEGIN
+    INSERT INTO USERS (username, email, password)
+    VALUES (username, email, password);
+END //
+
+DELIMITER ;
+
+-- User login
+DELIMITER //
+
+CREATE PROCEDURE sp_user_login(
+    IN email VARCHAR(100)
+)
+BEGIN
+    SELECT * FROM USERS WHERE email = email;
+END //
+
+DELIMITER ;
+
+-- Add quiz
+
+DELIMITER //
+
+CREATE PROCEDURE sp_add_quiz(
+    IN title VARCHAR(255),
+    IN category INT,
+    IN difficulty ENUM('easy', 'medium', 'hard'),
+    IN num_questions INT,
+    IN created_by INT
+)
+BEGIN
+    INSERT INTO QUIZZES (title, category, difficulty, num_questions, created_by)
+    VALUES (title, category, difficulty, num_questions, created_by);
+    
+    SELECT LAST_INSERT_ID() AS quiz_id; -- 
+END;
+
+DELIMITER ;
+
+-- Fetch quizzes by category
+
+DELIMITER //
+
+CREATE PROCEDURE sp_fetch_quizzes_by_category(
+    IN category_name VARCHAR(100)
+)
+BEGIN
+    SELECT QUIZZES.quiz_id, QUIZZES.title, CATEGORIES.name AS category
+    FROM QUIZZES
+    JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
+    WHERE CATEGORIES.name LIKE CONCAT('%', category_name, '%');
+END //
+
+DELIMITER ;
+
+-- Update leaderboard
+DELIMITER //
+
+CREATE PROCEDURE sp_update_leaderboard(
+    IN user_id INT,
+    IN new_score INT
+)
+BEGIN
+    INSERT INTO LEADERBOARD (user_id, score)
+    VALUES (user_id, new_score)
+    ON DUPLICATE KEY UPDATE score = score + VALUES(score);
+END //
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_quiz_details(IN quizId INT)
+BEGIN
+    SELECT 
+        QUIZZES.title,
+        QUIZ_QUESTIONS.question,
+        QUIZ_QUESTIONS.correct_answer,
+        QUIZ_QUESTIONS.incorrect_answers
+    FROM QUIZZES
+    JOIN QUIZ_QUESTIONS ON QUIZZES.quiz_id = QUIZ_QUESTIONS.quiz_id
+    WHERE QUIZZES.quiz_id = quizId;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_user_score(
+    IN userId INT,
+    IN additionalScore INT
+)
+BEGIN
+    UPDATE USERS
+    SET score = score + additionalScore
+    WHERE user_id = userId;
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_sync_leaderboard(
+    IN userId INT,
+    IN score INT
+)
+BEGIN
+    INSERT INTO LEADERBOARD (user_id, score)
+    VALUES (userId, score)
+    ON DUPLICATE KEY UPDATE score = VALUES(score);
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_search_quizzes(
+    IN searchTerm VARCHAR(255)
+)
+BEGIN
+    SELECT 
+        QUIZZES.quiz_id,
+        QUIZZES.title,
+        QUIZZES.created_at,
+        USERS.username AS created_by,
+        CATEGORIES.name AS category_name
+    FROM QUIZZES
+    JOIN USERS ON QUIZZES.created_by = USERS.user_id
+    JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
+    WHERE LOWER(CATEGORIES.name) LIKE searchTerm
+    ORDER BY QUIZZES.created_at DESC;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_leaderboard()
+BEGIN
+    SELECT 
+        username, 
+        score 
+    FROM USERS
+    ORDER BY score DESC
+    LIMIT 5;
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_quizzes()
+BEGIN
+    SELECT 
+        QUIZZES.quiz_id,
+        QUIZZES.title,
+        QUIZZES.created_at,
+        USERS.username AS created_by
+    FROM QUIZZES
+    JOIN USERS ON QUIZZES.created_by = USERS.user_id
+    ORDER BY QUIZZES.created_at DESC;
+END$$
+
+DELIMITER ;

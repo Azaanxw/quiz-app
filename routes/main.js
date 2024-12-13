@@ -33,41 +33,42 @@ module.exports = function(app) {
 
     // Handle our routes
     app.get("/", isAuthenticated, (req, res) => {
-        // Fetch leaderboard data (top 5 users by score)
-        db.query(
-            "SELECT username, score FROM USERS ORDER BY score DESC LIMIT 5",
-            (err, leaderboard) => {
+        // Call the stored procedure to fetch the leaderboard
+        db.query("CALL sp_get_leaderboard()", (err, results) => {
+            if (err) {
+                console.error("Error fetching leaderboard:", err.message);
+                req.flash("error", "Failed to fetch leaderboard data.");
+                return res.redirect("/login");
+            }
+    
+            const leaderboard = results[0]; // The first result set contains the leaderboard data
+    
+            // Call the stored procedure to fetch quizzes
+            db.query("CALL sp_get_quizzes()", (err, results) => {
                 if (err) {
-                    console.error("Error fetching leaderboard:", err.message);
-                    leaderboard = [];
+                    console.error("Error fetching quizzes:", err.message);
+                    req.flash("error", "Failed to fetch quizzes.");
+                    return res.redirect("/login");
                 }
     
-                // Fetch quizzes data
-                db.query(
-                    "SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by FROM QUIZZES JOIN USERS ON QUIZZES.created_by = USERS.user_id ORDER BY QUIZZES.created_at DESC",
-                    (err, quizzes) => {
-                        if (err) {
-                            console.error("Error fetching quizzes:", err.message);
-                            quizzes = [];
-                        }
+                const quizzes = results[0]; // The first result set contains the quizzes data
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+                const username = req.session.username || null;
     
-                        const successMessage = req.flash("success");
-                        const errorMessage = req.flash("error");
-                        const username = req.session.username || null; // Retrieve the username from the session
-    
-                        // Render the index page with leaderboard and quizzes
-                        res.render("index.ejs", {
-                            quizzes,
-                            leaderboard,
-                            successMessage,
-                            errorMessage,
-                            username,
-                        });
-                    }
-                );
-            }
-        );
+                // Render the index page with quizzes and leaderboard
+                res.render("index.ejs", {
+                    quizzes,
+                    leaderboard,
+                    successMessage,
+                    errorMessage,
+                    username,
+                });
+            });
+        });
     });
+    
+    
     
     
 
@@ -90,23 +91,21 @@ module.exports = function(app) {
         const { email, password } = req.body;
     
         try {
-            // Retrieve user data from the database
-            db.query("SELECT * FROM USERS WHERE email = ?", [email], async (error, results) => {
+            // Use stored procedure sp_user_login to retrieve user data
+            db.query("CALL sp_user_login(?)", [email], async (error, results) => {
                 if (error) {
-                    console.error("Database Error:", error);
+                    console.error("Database Error:", error.message);
                     req.flash("error", "Internal Server Error");
                     return res.redirect("/login");
                 }
     
-                if (results.length > 0) {
-                    const hashedPassword = results[0].password;
-    
-                    // Compare the provided password with the hashed password
-                    const match = await bcrypt.compare(password, hashedPassword);
+                const user = results[0][0]; // Extract the first result from the procedure
+                if (user) {
+                    const match = await bcrypt.compare(password, user.password); // Compare provided password with stored hash
     
                     if (match) {
-                        req.session.userId = results[0].user_id; // Save user ID in session
-                        req.session.username = results[0].username; // Store username in session
+                        req.session.userId = user.user_id; // Save user ID in session
+                        req.session.username = user.username; // Save username in session
                         req.flash("success", "Login successful!");
                         return res.redirect("/");
                     } else {
@@ -119,11 +118,12 @@ module.exports = function(app) {
                 }
             });
         } catch (err) {
-            console.error("Error during login:", err);
+            console.error("Error during login:", err.message);
             req.flash("error", "An error occurred while logging in.");
-            res.redirect("/login");
+            return res.redirect("/login");
         }
     });
+    
   
 
     // Register page
@@ -136,41 +136,40 @@ module.exports = function(app) {
     
     // Handling register page form
     app.post("/register", async (req, res) => {
-    const { username, email, password, confirmPassword } = req.body;
-
-    // Validate inputs
-    if (password !== confirmPassword) {
-        req.flash("error", "Passwords do not match!");
-        return res.redirect("/register");
-    }
-
-    try {
-        // Hashing the password
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const newUser = { username, email, password: hashedPassword };
-
-        // Insert the user into the database
-        db.query("INSERT INTO USERS SET ?", newUser, (error) => {
-            if (error) {
-                if (error.code === "ER_DUP_ENTRY") {
-                    req.flash("error", "Username or email already exists!");
-                } else {
-                    console.error("Database Error:", error);
-                    req.flash("error", "An error occurred while registering.");
+        const { username, email, password, confirmPassword } = req.body;
+    
+        // Validate inputs
+        if (password !== confirmPassword) {
+            req.flash("error", "Passwords do not match!");
+            return res.redirect("/register");
+        }
+    
+        try {
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+            // Call the stored procedure to register the user
+            db.query("CALL sp_register_user(?, ?, ?)", [username, email, hashedPassword], (error, results) => {
+                if (error) {
+                    if (error.code === "ER_DUP_ENTRY") {
+                        req.flash("error", "Username or email already exists!");
+                    } else {
+                        console.error("Database Error:", error.message);
+                        req.flash("error", "An error occurred while registering.");
+                    }
+                    return res.redirect("/register");
                 }
-                return res.redirect("/register");
-            }
-
-            req.flash("success", "Registration successful! Please log in.");
-            return res.redirect("/login");
-        });
-    } catch (err) {
-        console.error("Hashing Error:", err);
-        req.flash("error", "An error occurred while processing your registration.");
-        res.redirect("/register");
-    }
-});
+    
+                req.flash("success", "Registration successful! Please log in.");
+                res.redirect("/login");
+            });
+        } catch (err) {
+            console.error("Hashing Error:", err.message);
+            req.flash("error", "An error occurred while processing your registration.");
+            res.redirect("/register");
+        }
+    });
+    
 
     //Logout route
     app.get("/logout", isAuthenticated, (req, res) => {
@@ -205,7 +204,7 @@ module.exports = function(app) {
 
     // Route to fetch quiz questions
     app.post("/generate-quiz", isAuthenticated, (req, res) => {
-        const { amount, category, difficulty } = req.body; // Ensure 'difficulty' is captured
+        const { amount, category, difficulty } = req.body;
     
         const apiUrl = `https://opentdb.com/api.php?amount=${amount}&category=${category}&difficulty=${difficulty}&type=multiple`;
     
@@ -236,108 +235,131 @@ module.exports = function(app) {
             }));
     
             const userId = req.session.userId;
-    
             const title = `Quiz (${categoryMap[category] || "Unknown Category"}, ${difficulty}, ${amount} Questions)`;
-
     
-            db.query(
-                "INSERT INTO QUIZZES (title, category, difficulty, num_questions, created_by) VALUES (?, ?, ?, ?, ?)",
-                [title, category, difficulty, amount, userId],
-                (err, results) => {
-                    if (err) {
-                        console.error("Error saving quiz:", err.message);
-                        req.flash("error", "Failed to save the quiz. Please try again.");
-                        return res.redirect("/quiz-setup");
-                    }
-    
-                    const quizId = results.insertId;
-    
-                    const questions = quizData.map((q) => [
-                        quizId,
-                        q.question,
-                        q.correctAnswer,
-                        JSON.stringify(q.incorrectAnswers),
-                    ]);
-    
-                    db.query(
-                        "INSERT INTO QUIZ_QUESTIONS (quiz_id, question, correct_answer, incorrect_answers) VALUES ?",
-                        [questions],
-                        (err) => {
-                            if (err) {
-                                console.error("Error saving questions:", err.message);
-                                req.flash("error", "Failed to save quiz questions.");
-                                return res.redirect("/quiz-setup");
-                            }
-    
-                            req.session.quizData = quizData;
-                            req.flash("success", "Quiz successfully created!");
-                            res.redirect("/");
-                        }
-                    );
+            // Begin transaction
+            db.beginTransaction((err) => {
+                if (err) {
+                    console.error("Transaction Error:", err.message);
+                    req.flash("error", "An error occurred. Please try again.");
+                    return res.redirect("/quiz-setup");
                 }
-            );
+    
+                // Use stored procedure to create a quiz
+                db.query(
+                    "CALL sp_add_quiz(?, ?, ?, ?, ?)",
+                    [title, category, difficulty, amount, userId],
+                    (err, results) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                console.error("Error saving quiz:", err.message);
+                                req.flash("error", "Failed to save the quiz.");
+                                res.redirect("/quiz-setup");
+                            });
+                        }
+                
+                        // Access the first result set returned by the procedure
+                        const quizId = results[0][0]?.quiz_id;
+                        if (!quizId) {
+                            return db.rollback(() => {
+                                console.error("Error: Quiz ID not returned by sp_add_quiz.");
+                                req.flash("error", "Failed to create the quiz.");
+                                res.redirect("/quiz-setup");
+                            });
+                        }
+                
+                        const questions = quizData.map((q) => [
+                            quizId,
+                            q.question,
+                            q.correctAnswer,
+                            JSON.stringify(q.incorrectAnswers),
+                        ]);
+                
+                        db.query(
+                            "INSERT INTO QUIZ_QUESTIONS (quiz_id, question, correct_answer, incorrect_answers) VALUES ?",
+                            [questions],
+                            (err) => {
+                                if (err) {
+                                    return db.rollback(() => {
+                                        console.error("Error saving questions:", err.message);
+                                        req.flash("error", "Failed to save quiz questions.");
+                                        res.redirect("/quiz-setup");
+                                    });
+                                }
+                
+                                db.commit((err) => {
+                                    if (err) {
+                                        return db.rollback(() => {
+                                            console.error("Commit Error:", err.message);
+                                            req.flash("error", "An error occurred. Please try again.");
+                                            res.redirect("/quiz-setup");
+                                        });
+                                    }
+                
+                                    req.session.quizData = quizData;
+                                    req.flash("success", "Quiz successfully created!");
+                                    res.redirect("/");
+                                });
+                            }
+                        );
+                    }
+                );                
+            });
         });
     });
+    
 
     const he = require("he"); // Import the library
 
-    
-    
-
-    // Route for viewing the quiz
     app.get("/quiz/:id", isAuthenticated, (req, res) => {
         const quizId = req.params.id;
     
         // Set the current quiz ID in the session
         req.session.currentQuizId = quizId;
     
-        db.query(
-            `SELECT QUIZZES.title, QUIZ_QUESTIONS.question, QUIZ_QUESTIONS.correct_answer, QUIZ_QUESTIONS.incorrect_answers
-             FROM QUIZZES
-             JOIN QUIZ_QUESTIONS ON QUIZZES.quiz_id = QUIZ_QUESTIONS.quiz_id
-             WHERE QUIZZES.quiz_id = ?`,
-            [quizId],
-            (err, results) => {
-                if (err) {
-                    console.error("Error fetching quiz:", err.message);
-                    req.flash("error", "Failed to load the quiz. Please try again.");
-                    return res.redirect("/");
-                }
-    
-                if (results.length === 0) {
-                    req.flash("error", "Quiz not found.");
-                    return res.redirect("/");
-                }
-    
-                // Decode and format the questions
-                const quizData = results.map((row) => ({
-                    question: row.question,
-                    correctAnswer: row.correct_answer,
-                    incorrectAnswers: JSON.parse(row.incorrect_answers), // Parse JSON to array
-                }));
-    
-                const title = results[0].title;
-    
-                // Store quiz data in session for later use
-                req.session.quizData = quizData;
-    
-                res.render("quiz.ejs", {
-                    title,
-                    quizData,
-                    username: req.session.username,
-                    successMessage: req.flash("success"),
-                    errorMessage: req.flash("error"),
-                });
+        // Call the stored procedure to fetch quiz details and questions
+        db.query("CALL sp_get_quiz_details(?)", [quizId], (err, results) => {
+            if (err) {
+                console.error("Error fetching quiz:", err.message);
+                req.flash("error", "Failed to load the quiz. Please try again.");
+                return res.redirect("/");
             }
-        );
+    
+            // Check if the quiz exists
+            const quizRows = results[0];
+            if (!quizRows || quizRows.length === 0) {
+                req.flash("error", "Quiz not found.");
+                return res.redirect("/");
+            }
+    
+            // Decode and format the questions
+            const quizData = quizRows.map((row) => ({
+                question: row.question,
+                correctAnswer: row.correct_answer,
+                incorrectAnswers: JSON.parse(row.incorrect_answers), // Parse JSON to array
+            }));
+    
+            const title = quizRows[0].title; // Quiz title
+    
+            // Store quiz data in session for later use
+            req.session.quizData = quizData;
+    
+            // Render the quiz page
+            res.render("quiz.ejs", {
+                title,
+                quizData,
+                username: req.session.username,
+                successMessage: req.flash("success"),
+                errorMessage: req.flash("error"),
+            });
+        });
     });
-    
-    
     
     
     
     // Route to handle quiz submission and score calculation
     app.post("/quiz-result", isAuthenticated, (req, res) => {
+  
         const userAnswers = req.body.answers; // Submitted answers
         const quizData = req.session.quizData; // Quiz data from session
         const userId = req.session.userId;
@@ -350,50 +372,66 @@ module.exports = function(app) {
         let score = 0;
     
         // Compare answers
+        // Compare answers
         quizData.forEach((question, index) => {
             if (userAnswers[index] === question.correctAnswer) {
                 score++;
             }
         });
     
-        // Update the user's score in the USERS table
-        const updateUserScoreQuery = `
-            UPDATE USERS
-            SET score = score + ?
-            WHERE user_id = ?;
-        `;
-        db.query(updateUserScoreQuery, [score, userId], (err) => {
+        // Begin transaction
+        db.beginTransaction((err) => {
             if (err) {
-                console.error("Error updating user score:", err);
-                req.flash("error", "Failed to update your score.");
+                console.error("Transaction Error:", err.message);
+                req.flash("error", "An error occurred. Please try again.");
                 return res.redirect("/");
             }
     
-            // Sync with LEADERBOARD table
-            const updateLeaderboardQuery = `
-                INSERT INTO LEADERBOARD (user_id, score)
-                VALUES (?, ?)
-                ON DUPLICATE KEY UPDATE score = VALUES(score);
-            `;
-            db.query(updateLeaderboardQuery, [userId, score], (err) => {
+            // Call stored procedure to update user's score
+            db.query("CALL sp_update_user_score(?, ?)", [userId, score], (err) => {
                 if (err) {
-                    console.error("Error updating leaderboard:", err);
-                    req.flash("error", "Failed to update the leaderboard.");
-                    return res.redirect("/");
+                    return db.rollback(() => {
+                        console.error("Error updating user score:", err.message);
+                        req.flash("error", "Failed to update your score.");
+                        res.redirect("/");
+                    });
                 }
     
-                // Show quiz results
-                req.flash("success", `You scored ${score} points!`);
-                res.render("quiz-result.ejs", {
-                    score,
-                    total: quizData.length,
-                    username: req.session.username,
+                // Call stored procedure to sync leaderboard
+                db.query("CALL sp_sync_leaderboard(?, ?)", [userId, score], (err) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            console.error("Error updating leaderboard:", err.message);
+                            req.flash("error", "Failed to update the leaderboard.");
+                            res.redirect("/");
+                        });
+                    }
+    
+                    // Commit transaction
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                console.error("Commit Error:", err.message);
+                                req.flash("error", "An error occurred. Please try again.");
+                                res.redirect("/");
+                            });
+                        }
+    
+                        // Clear session quiz data
+                        delete req.session.quizData;
+    
+                        // Show quiz results
+                        req.flash("success", `You scored ${score} points!`);
+                        res.render("quiz-result.ejs", {
+                            score,
+                            total: quizData.length,
+                            username: req.session.username,
+                        });
+                    });
                 });
             });
         });
     });
-    
-    
     
     
     // Helper function to calculate score and render results
@@ -432,39 +470,49 @@ module.exports = function(app) {
     
         const searchTerm = `%${category.toLowerCase()}%`; // Use SQL wildcard for partial match
     
-        // Query the database for quizzes matching the category name
-        db.query(
-            `SELECT QUIZZES.quiz_id, QUIZZES.title, QUIZZES.created_at, USERS.username AS created_by, CATEGORIES.name AS category_name
-             FROM QUIZZES
-             JOIN USERS ON QUIZZES.created_by = USERS.user_id
-             JOIN CATEGORIES ON QUIZZES.category = CATEGORIES.category_id
-             WHERE LOWER(CATEGORIES.name) LIKE ? 
-             ORDER BY QUIZZES.created_at DESC`,
-            [searchTerm],
-            (err, quizzes) => {
-                if (err) {
-                    console.error("Error fetching quizzes:", err.message);
-                    req.flash("error", "Failed to fetch quizzes. Please try again.");
-                    return res.redirect("/");
-                }
-    
-                const successMessage = req.flash("success");
-                const errorMessage = req.flash("error");
-                const username = req.session.username || null;
-    
-                if (quizzes.length === 0) {
-                    req.flash("error", `No quizzes found matching "${category}".`);
-                    return res.redirect("/");
-                }
-    
-                res.render("index.ejs", {
-                    quizzes,
-                    successMessage,
-                    errorMessage,
-                    username,
-                });
+        // Fetch leaderboard data (top 5 users by score)
+        db.query("CALL sp_get_leaderboard()", (err, leaderboardResults) => {
+            if (err) {
+                console.error("Error fetching leaderboard:", err.message);
+                req.flash("error", "Failed to fetch leaderboard data.");
+                return res.redirect("/");
             }
-        );
+    
+            const leaderboard = leaderboardResults[0]; // The first result set contains leaderboard data
+    
+            // Query the database for quizzes matching the category name
+            db.query(
+                "CALL sp_search_quizzes(?)",
+                [searchTerm],
+                (err, quizResults) => {
+                    if (err) {
+                        console.error("Error fetching quizzes:", err.message);
+                        req.flash("error", "Failed to fetch quizzes. Please try again.");
+                        return res.redirect("/");
+                    }
+    
+                    const quizzes = quizResults[0]; // The first result set contains the quizzes data
+                    const successMessage = req.flash("success");
+                    const errorMessage = req.flash("error");
+                    const username = req.session.username || null;
+    
+                    if (!quizzes || quizzes.length === 0) {
+                        req.flash("error", `No quizzes found matching "${category}".`);
+                        return res.redirect("/");
+                    }
+    
+                    res.render("index.ejs", {
+                        quizzes,
+                        leaderboard,
+                        successMessage,
+                        errorMessage,
+                        username,
+                    });
+                }
+            );
+        });
     });
+    
+    
     
 };
