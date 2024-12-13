@@ -98,38 +98,51 @@ module.exports = function (app) {
     const { email, password } = req.body;
 
     try {
-      // Use stored procedure sp_user_login to retrieve user data
-      db.query("CALL sp_user_login(?)", [email], async (error, results) => {
-        if (error) {
-          console.error("Database Error:", error.message);
-          req.flash("error", "Internal Server Error");
-          return res.redirect("/login");
-        }
+        // Use stored procedure sp_user_login to retrieve user data
+        db.query("CALL sp_user_login(?)", [email], async (error, results) => {
+            if (error) {
+                console.error("Database Error:", error.message);
+                req.flash("error", "Internal Server Error");
+                return res.redirect("/login");
+            }
 
-        const user = results[0][0]; // Extract the first result from the procedure
-        if (user) {
-          const match = await bcrypt.compare(password, user.password); // Compare provided password with stored hash
+            const user = results[0][0]; // Extract the first result from the procedure
+            if (user) {
+                const match = await bcrypt.compare(password, user.password); // Compare provided password with stored hash
 
-          if (match) {
-            req.session.userId = user.user_id; // Save user ID in session
-            req.session.username = user.username; // Save username in session
-            req.flash("success", "Login successful!");
-            return res.redirect("/");
-          } else {
-            req.flash("error", "Incorrect email or password!");
-            return res.redirect("/login");
-          }
-        } else {
-          req.flash("error", "Incorrect email or password!");
-          return res.redirect("/login");
-        }
-      });
+                if (match) {
+                    // Update session data for the new user
+                    req.session.userId = user.user_id; 
+                    req.session.username = user.username;
+
+                    // Save the session explicitly
+                    req.session.save((err) => {
+                        if (err) {
+                            console.error("Session Save Error:", err.message);
+                            req.flash("error", "Failed to log in. Please try again.");
+                            return res.redirect("/login");
+                        }
+
+                        req.flash("success", "Login successful!");
+                        return res.redirect("/");
+
+                    });
+                } else {
+                    req.flash("error", "Incorrect email or password!");
+                    return res.redirect("/login");
+                }
+            } else {
+                req.flash("error", "Incorrect email or password!");
+                return res.redirect("/login");
+            }
+        });
     } catch (err) {
-      console.error("Error during login:", err.message);
-      req.flash("error", "An error occurred while logging in.");
-      return res.redirect("/login");
+        console.error("Error during login:", err.message);
+        req.flash("error", "An error occurred while logging in.");
+        return res.redirect("/login");
     }
-  });
+});
+
 
   // Register page
   app.get("/register", function (req, res) {
@@ -185,15 +198,18 @@ module.exports = function (app) {
   //Logout route
   app.get("/logout", isAuthenticated, (req, res) => {
     req.session.destroy((err) => {
-      if (err) {
-        console.error(err);
-        res.redirect("/");
-      } else {
+        if (err) {
+            console.error("Error destroying session:", err.message);
+            req.flash("error", "Failed to log out. Please try again.");
+            return res.redirect("/");
+        }
+
+        res.clearCookie("connect.sid"); // Clear session cookie
         console.log("Logged out successfully!");
         res.redirect("/login");
-      }
     });
-  });
+});
+
 
   // Quiz implementation
 

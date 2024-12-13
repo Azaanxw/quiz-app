@@ -105,7 +105,9 @@ CREATE PROCEDURE sp_user_login(
     IN email VARCHAR(100)
 )
 BEGIN
-    SELECT * FROM USERS WHERE email = email;
+    SELECT * 
+    FROM USERS 
+    WHERE USERS.email = email;
 END //
 
 DELIMITER ;
