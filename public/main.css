@@ -165,7 +165,9 @@ footer a:hover {
 .user-info p {
   margin: 0;
   font-size: 16px;
-  color: #333;
+  color: #242222;
+  padding-bottom: 5px;
+  font-weight: bold;
 }
 
 /* Create Quiz Button */
@@ -377,3 +379,4 @@ a.return-home-link:hover {
 .leaderboard-entry:last-child {
   border-bottom: none;
 }
+

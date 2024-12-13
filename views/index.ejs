@@ -75,13 +75,10 @@
     </div>
 </div>
 
-
- 
-  <p>this is the home page for the quiz app</p>
-
   <div class="user-info">
     <% if (username) { %>
         <p>Welcome, <%= username %>!</p>
+        <p>Your Score: <%= userScore %></p>
         <a href="/logout" class="logout-button">Logout</a>
     <% } else { %>
         <p>Welcome, Guest!</p>

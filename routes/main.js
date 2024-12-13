@@ -29,40 +29,55 @@ module.exports = function (app) {
 
   // Handle our routes
   app.get("/", isAuthenticated, (req, res) => {
+    const userId = req.session.userId; // Assuming userId is stored in the session
+    const username = req.session.username || null;
+
     // Call the stored procedure to fetch the leaderboard
-    db.query("CALL sp_get_leaderboard()", (err, results) => {
-      if (err) {
-        console.error("Error fetching leaderboard:", err.message);
-        req.flash("error", "Failed to fetch leaderboard data.");
-        return res.redirect("/login");
-      }
-
-      const leaderboard = results[0]; // The first result set contains the leaderboard data
-
-      // Call the stored procedure to fetch quizzes
-      db.query("CALL sp_get_quizzes()", (err, results) => {
+    db.query("CALL sp_get_leaderboard()", (err, leaderboardResults) => {
         if (err) {
-          console.error("Error fetching quizzes:", err.message);
-          req.flash("error", "Failed to fetch quizzes.");
-          return res.redirect("/login");
+            console.error("Error fetching leaderboard:", err.message);
+            req.flash("error", "Failed to fetch leaderboard data.");
+            return res.redirect("/login");
         }
 
-        const quizzes = results[0]; // The first result set contains the quizzes data
-        const successMessage = req.flash("success");
-        const errorMessage = req.flash("error");
-        const username = req.session.username || null;
+        const leaderboard = leaderboardResults[0]; // The first result set contains the leaderboard data
 
-        // Render the index page with quizzes and leaderboard
-        res.render("index.ejs", {
-          quizzes,
-          leaderboard,
-          successMessage,
-          errorMessage,
-          username,
+        // Call the stored procedure to fetch quizzes
+        db.query("CALL sp_get_quizzes()", (err, quizResults) => {
+            if (err) {
+                console.error("Error fetching quizzes:", err.message);
+                req.flash("error", "Failed to fetch quizzes.");
+                return res.redirect("/login");
+            }
+
+            const quizzes = quizResults[0]; // The first result set contains the quizzes data
+
+            // Fetch the user's score
+            db.query("SELECT score FROM USERS WHERE user_id = ?", [userId], (err, userScoreResults) => {
+                if (err) {
+                    console.error("Error fetching user score:", err.message);
+                    req.flash("error", "Failed to fetch user score.");
+                    return res.redirect("/login");
+                }
+
+                const userScore = userScoreResults.length > 0 ? userScoreResults[0].score : 0;
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+
+                // Render the index page with quizzes, leaderboard, and user's score
+                res.render("index.ejs", {
+                    quizzes,
+                    leaderboard,
+                    userScore,
+                    successMessage,
+                    errorMessage,
+                    username,
+                });
+            });
         });
-      });
     });
-  });
+});
+
 
   app.get("/about", isAuthenticated, (req, res) => {
     const successMessage = req.flash("success");
