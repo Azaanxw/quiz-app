@@ -55,6 +55,7 @@ CREATE TABLE QUIZ_QUESTIONS (
     FOREIGN KEY (quiz_id) REFERENCES QUIZZES(quiz_id) ON DELETE CASCADE
 );
 
+ALTER TABLE LEADERBOARD ADD UNIQUE(user_id);
 -- VIEWS
 -- Leaderboard view
 CREATE VIEW vw_leaderboard AS
@@ -116,7 +117,7 @@ DELIMITER //
 CREATE PROCEDURE sp_add_quiz(
     IN title VARCHAR(255),
     IN category INT,
-    IN difficulty ENUM('easy', 'medium', 'hard'),
+    IN difficulty VARCHAR(10),
     IN num_questions INT,
     IN created_by INT
 )
@@ -124,8 +125,8 @@ BEGIN
     INSERT INTO QUIZZES (title, category, difficulty, num_questions, created_by)
     VALUES (title, category, difficulty, num_questions, created_by);
     
-    SELECT LAST_INSERT_ID() AS quiz_id; -- 
-END;
+    SELECT LAST_INSERT_ID() AS quiz_id; 
+END //
 
 DELIMITER ;
 
@@ -155,8 +156,10 @@ CREATE PROCEDURE sp_update_leaderboard(
 BEGIN
     INSERT INTO LEADERBOARD (user_id, score)
     VALUES (user_id, new_score)
-    ON DUPLICATE KEY UPDATE score = score + VALUES(score);
+    ON DUPLICATE KEY UPDATE score = VALUES(score);
+
 END //
+
 
 DELIMITER ;
 
