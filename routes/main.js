@@ -477,52 +477,63 @@ module.exports = function (app) {
     const { category } = req.query;
 
     if (!category) {
-      req.flash("error", "Please enter a category to search.");
-      return res.redirect("/");
+        req.flash("error", "Please enter a category to search.");
+        return res.redirect("/");
     }
 
     const searchTerm = `%${category.toLowerCase()}%`; // Use SQL wildcard for partial match
+    const userId = req.session.userId; // Fetch user ID from session
 
     // Fetch leaderboard data (top 5 users by score)
     db.query("CALL sp_get_leaderboard()", (err, leaderboardResults) => {
-      if (err) {
-        console.error("Error fetching leaderboard:", err.message);
-        req.flash("error", "Failed to fetch leaderboard data.");
-        return res.redirect("/");
-      }
-
-      const leaderboard = leaderboardResults[0]; // The first result set contains leaderboard data
-
-      // Query the database for quizzes matching the category name
-      db.query(
-        "CALL sp_search_quizzes(?)",
-        [searchTerm],
-        (err, quizResults) => {
-          if (err) {
-            console.error("Error fetching quizzes:", err.message);
-            req.flash("error", "Failed to fetch quizzes. Please try again.");
+        if (err) {
+            console.error("Error fetching leaderboard:", err.message);
+            req.flash("error", "Failed to fetch leaderboard data.");
             return res.redirect("/");
-          }
-
-          const quizzes = quizResults[0]; // The first result set contains the quizzes data
-          const successMessage = req.flash("success");
-          const errorMessage = req.flash("error");
-          const username = req.session.username || null;
-
-          if (!quizzes || quizzes.length === 0) {
-            req.flash("error", `No quizzes found matching "${category}".`);
-            return res.redirect("/");
-          }
-
-          res.render("index.ejs", {
-            quizzes,
-            leaderboard,
-            successMessage,
-            errorMessage,
-            username,
-          });
         }
-      );
+
+        const leaderboard = leaderboardResults[0]; // The first result set contains leaderboard data
+
+        // Query the database for quizzes matching the category name
+        db.query("CALL sp_search_quizzes(?)", [searchTerm], (err, quizResults) => {
+            if (err) {
+                console.error("Error fetching quizzes:", err.message);
+                req.flash("error", "Failed to fetch quizzes. Please try again.");
+                return res.redirect("/");
+            }
+
+            const quizzes = quizResults[0]; // The first result set contains the quizzes data
+
+            // Fetch the user's score
+            db.query("SELECT score FROM USERS WHERE user_id = ?", [userId], (err, userScoreResults) => {
+                if (err) {
+                    console.error("Error fetching user score:", err.message);
+                    req.flash("error", "Failed to fetch user score.");
+                    return res.redirect("/");
+                }
+
+                const userScore = userScoreResults.length > 0 ? userScoreResults[0].score : 0;
+                const successMessage = req.flash("success");
+                const errorMessage = req.flash("error");
+                const username = req.session.username || null;
+
+                if (!quizzes || quizzes.length === 0) {
+                    req.flash("error", `No quizzes found matching "${category}".`);
+                    return res.redirect("/");
+                }
+
+                // Render the index page with quizzes, leaderboard, and user score
+                res.render("index.ejs", {
+                    quizzes,
+                    leaderboard,
+                    successMessage,
+                    errorMessage,
+                    username,
+                    userScore
+                });
+            });
+        });
     });
-  });
+});
+
 };
