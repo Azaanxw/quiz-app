@@ -1,75 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="/main.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="/main.css" />
     <title>Quizhub Login</title>
     <script>
-
       // Function to hide the flash message after 3500 milliseconds (3.5 seconds)
-      setTimeout(function(){
-        var alertElement = document.querySelector('.flash-messages');
+      setTimeout(function () {
+        var alertElement = document.querySelector(".flash-messages");
         if (alertElement) {
-          alertElement.style.display = 'none';
+          alertElement.style.display = "none";
         }
       }, 3500);
-      
     </script>
   </head>
   <body>
     <div class="container">
-    <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon">
-    <h1>QuizHub Login</h1>
-        
-        <!-- Display success message -->
-        <% if (successMessage && successMessage.length > 0) { %>
-          <div class="flash-messages success">
-              <%= successMessage %>
-          </div>
+      <img src="images/quiz-icon.png" alt="Quiz Icon" class="quiz-icon" />
+      <h1>QuizHub Login</h1>
+
+      <!-- Display success message -->
+      <% if (successMessage && successMessage.length > 0) { %>
+      <div class="flash-messages success"><%= successMessage %></div>
       <% } %>
 
       <!-- Display error message -->
       <% if (errorMessage && errorMessage.length > 0) { %>
-          <div class="flash-messages error">
-              <%= errorMessage %>
-          </div>
+      <div class="flash-messages error"><%= errorMessage %></div>
       <% } %>
 
-    <h3>Welcome back!</h3>
+      <h3>Welcome back!</h3>
 
-  <script>
-    document.querySelectorAll('.close-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+      <script>
+        document.querySelectorAll(".close-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
             const flashMessage = btn.parentElement;
 
             // Fade out the flash message
-            flashMessage.style.transition = 'opacity 0.5s ease';
-            flashMessage.style.opacity = '1';
+            flashMessage.style.transition = "opacity 0.5s ease";
+            flashMessage.style.opacity = "1";
 
             // Remove the flash message from the DOM after fading out
             setTimeout(() => {
-                flashMessage.remove();
+              flashMessage.remove();
             }, 500);
+          });
         });
-    });
-</script>
-    <!-- Login form -->
-    
-    <form action="/login" method="POST">
-      <img src="images/email_icon.png" alt="Email Icon" class="icon">
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required>
-      <img src="images/password_icon.png" alt="Password Icon" class="icon">
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" required>
-      <button type="submit">Login</button>
-  </form>
+      </script>
+      <!-- Login form -->
 
-   <!-- Link to Registration Page -->
-  <footer>
-    <p>Don't have an account? <a href="/register" class="redirect-link">Sign up here</a></p>
-  </footer>
-  </div>
+      <form action="/login" method="POST">
+        <img src="images/email_icon.png" alt="Email Icon" class="icon" />
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required />
+        <img src="images/password_icon.png" alt="Password Icon" class="icon" />
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
+        <button type="submit">Login</button>
+      </form>
+
+      <!-- Link to Registration Page -->
+      <footer>
+        <p>
+          Don't have an account?
+          <a href="/register" class="redirect-link">Sign up here</a>
+        </p>
+      </footer>
+    </div>
   </body>
 </html>

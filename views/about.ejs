@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="/main.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="/main.css" />
     <title>Quizhub About</title>
   </head>
   <body>
     <div class="container">
       <a href="/" class="return-home-link">Return to Home</a>
       <h1>About QuizHub</h1>
-    <h2>
-      This website allows different users to create quizzes and test their knowledge.
-    </h2>
-    <div class="user-info">
-      <% if (username) { %>
-          <a href="/logout" class="logout-button">Logout</a>
-      <% } else { %>
-          <p>Welcome, Guest!</p>
-      <% } %>
-  </div>
-</div>
-  </body> 
+      <h2>
+        This website allows different users to create quizzes and test their
+        knowledge.
+      </h2>
+      <div class="user-info">
+        <% if (username) { %>
+        <a href="/logout" class="logout-button">Logout</a>
+        <% } else { %>
+        <p>Welcome, Guest!</p>
+        <% } %>
+      </div>
+    </div>
+  </body>
 </html>

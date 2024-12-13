@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/quiz.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/quiz.css" />
     <title>QuizHub Register</title>
-
-</head>
-<body>
+  </head>
+  <body>
     <div class="quiz-container">
-        <a href="/" class="return-home-link">Return to Home</a>
-        <h1>Quiz Results</h1>
-        <div class="score-container">
-            <p>You scored <%= score %> out of <%= total %>!</p>
-            <a href="/quiz-setup">Try Another Quiz</a>
-        </div>
+      <a href="/" class="return-home-link">Return to Home</a>
+      <h1>Quiz Results</h1>
+      <div class="score-container">
+        <p>You scored <%= score %> out of <%= total %>!</p>
+        <a href="/quiz-setup">Try Another Quiz</a>
+      </div>
     </div>
     <div class="user-info">
-        <% if (username) { %>
-            <p>Welcome, <%= username %>!</p>
-            <a href="/logout" class="logout-button">Logout</a>
-        <% } else { %>
-            <p>Welcome, Guest!</p>
-        <% } %>
+      <% if (username) { %>
+      <p>Welcome, <%= username %>!</p>
+      <a href="/logout" class="logout-button">Logout</a>
+      <% } else { %>
+      <p>Welcome, Guest!</p>
+      <% } %>
     </div>
-</body>
+  </body>
+</html>
